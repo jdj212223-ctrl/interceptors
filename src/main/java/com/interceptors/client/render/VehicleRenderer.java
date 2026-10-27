@@ -108,47 +108,73 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         return Mth.hsvToRgb(hue, 0.8f, 1f);
     }
 
+    /** Faces of a box as corner indices (see {@link VehicleModels.Box#corners()}), each listed counter-clockwise from outside. */
+    private static final int[][] FACES = {{0, 1, 2, 3}, {7, 6, 5, 4}, {4, 5, 1, 0}, {3, 2, 6, 7}, {0, 3, 7, 4}, {5, 6, 2, 1}};
+    /** Stretch UVs for those corners: each face shows the whole texture once, upright. */
+    private static final float[][] STRETCH_UV = {{0, 0, 1, 0, 1, 1, 0, 1}, {0, 0, 1, 0, 1, 1, 0, 1}, {0, 0, 1, 0, 1, 1, 0, 1},
+            {0, 1, 1, 1, 1, 0, 0, 0}, {0, 1, 1, 1, 1, 0, 0, 0}, {0, 0, 1, 0, 1, 1, 0, 1}};
+
     /**
      * Six faces with texture coordinates: STRETCH materials fit each face; WORLD materials are laid on at true
-     * scale (64 pixels per block) so they tile seamlessly, with the texture's bottom edge at the road.
+     * scale (64 pixels per block) so they tile seamlessly, with the texture's bottom edge at the road. Sloped
+     * faces are mapped by whichever axis they mostly face.
      */
     private static void box(PoseStack.Pose p, VertexConsumer vc, VehicleModels.Box b, Mat mat, int rgb, int light) {
-        float x0 = b.x0(), y0 = b.y0(), z0 = b.z0(), x1 = b.x1(), y1 = b.y1(), z1 = b.z1();
+        float[][] c = b.corners();
         float su = Mat.PIXELS_PER_BLOCK / (float) mat.width, sv = Mat.PIXELS_PER_BLOCK / (float) mat.height, top = mat.heightBlocks();
         Face face = new Face(p, vc, rgb >> 16 & 0xFF, rgb >> 8 & 0xFF, rgb & 0xFF, light);
-        if (mat.stretch) {
-            face.quad(0, -1, 0, x0, y0, z0, 0, 0, x1, y0, z0, 1, 0, x1, y0, z1, 1, 1, x0, y0, z1, 0, 1);
-            face.quad(0, 1, 0, x0, y1, z1, 0, 0, x1, y1, z1, 1, 0, x1, y1, z0, 1, 1, x0, y1, z0, 0, 1);
-            face.quad(0, 0, -1, x0, y1, z0, 0, 0, x1, y1, z0, 1, 0, x1, y0, z0, 1, 1, x0, y0, z0, 0, 1);
-            face.quad(0, 0, 1, x0, y0, z1, 0, 1, x1, y0, z1, 1, 1, x1, y1, z1, 1, 0, x0, y1, z1, 0, 0);
-            face.quad(-1, 0, 0, x0, y0, z0, 0, 1, x0, y0, z1, 1, 1, x0, y1, z1, 1, 0, x0, y1, z0, 0, 0);
-            face.quad(1, 0, 0, x1, y1, z0, 0, 0, x1, y1, z1, 1, 0, x1, y0, z1, 1, 1, x1, y0, z0, 0, 1);
-            return;
+        float cx = (b.x0() + b.x1()) / 2, cy = (b.y0() + b.y1()) / 2, cz = (b.z0() + b.z1()) / 2;
+        for (int f = 0; f < 6; f++) {
+            int[] idx = FACES[f];
+            float[] a = c[idx[0]], q1 = c[idx[1]], q3 = c[idx[3]];
+            // Normal from the face's two edges, flipped to point away from the box's middle.
+            float ux = q1[0] - a[0], uy = q1[1] - a[1], uz = q1[2] - a[2], vx = q3[0] - a[0], vy = q3[1] - a[1], vz = q3[2] - a[2];
+            float nx = uy * vz - uz * vy, ny = uz * vx - ux * vz, nz = ux * vy - uy * vx;
+            float len = (float) Math.sqrt(nx * nx + ny * ny + nz * nz);
+            if (len < 1e-6f) continue;
+            nx /= len;
+            ny /= len;
+            nz /= len;
+            float mx = 0, my = 0, mz = 0;
+            for (int i : idx) {
+                mx += c[i][0] / 4;
+                my += c[i][1] / 4;
+                mz += c[i][2] / 4;
+            }
+            if (nx * (mx - cx) + ny * (my - cy) + nz * (mz - cz) < 0) {
+                nx = -nx;
+                ny = -ny;
+                nz = -nz;
+            }
+            float[] uv = new float[8];
+            for (int k = 0; k < 4; k++) {
+                float[] v = c[idx[k]];
+                if (mat.stretch) {
+                    uv[k * 2] = STRETCH_UV[f][k * 2];
+                    uv[k * 2 + 1] = STRETCH_UV[f][k * 2 + 1];
+                } else if (Math.abs(ny) > 0.7f) {
+                    // Roofs and hoods: only the clean upper part of the texture (the mud lives at its bottom).
+                    uv[k * 2] = v[0] * su;
+                    uv[k * 2 + 1] = Math.min(0.55f, (v[2] - b.z0()) * sv);
+                } else {
+                    uv[k * 2] = (Math.abs(nx) > Math.abs(nz) ? v[2] : v[0]) * su;
+                    uv[k * 2 + 1] = (top - v[1]) * sv;
+                }
+            }
+            face.quad(nx, ny, nz, c[idx[0]], c[idx[1]], c[idx[2]], c[idx[3]], uv);
         }
-        // Side faces: u runs along the face, v = (top - y) so y=0 is the texture's bottom row.
-        float vy0 = (top - y0) * sv, vy1 = (top - y1) * sv;
-        face.quad(0, 0, -1, x0, y1, z0, x0 * su, vy1, x1, y1, z0, x1 * su, vy1, x1, y0, z0, x1 * su, vy0, x0, y0, z0, x0 * su, vy0);
-        face.quad(0, 0, 1, x0, y0, z1, x0 * su, vy0, x1, y0, z1, x1 * su, vy0, x1, y1, z1, x1 * su, vy1, x0, y1, z1, x0 * su, vy1);
-        face.quad(-1, 0, 0, x0, y0, z0, z0 * su, vy0, x0, y0, z1, z1 * su, vy0, x0, y1, z1, z1 * su, vy1, x0, y1, z0, z0 * su, vy1);
-        face.quad(1, 0, 0, x1, y1, z0, z0 * su, vy1, x1, y1, z1, z1 * su, vy1, x1, y0, z1, z1 * su, vy0, x1, y0, z0, z0 * su, vy0);
-        // Top and bottom: only the clean upper part of the texture (the mud lives at its bottom), laid flat.
-        float tv = Math.min(0.55f, (z1 - z0) * sv);
-        face.quad(0, -1, 0, x0, y0, z0, x0 * su, 0, x1, y0, z0, x1 * su, 0, x1, y0, z1, x1 * su, tv, x0, y0, z1, x0 * su, tv);
-        face.quad(0, 1, 0, x0, y1, z1, x0 * su, tv, x1, y1, z1, x1 * su, tv, x1, y1, z0, x1 * su, 0, x0, y1, z0, x0 * su, 0);
     }
 
     private record Face(PoseStack.Pose p, VertexConsumer vc, int r, int g, int b, int light) {
-        void quad(float nx, float ny, float nz,
-                  float ax, float ay, float az, float au, float av, float bx, float by, float bz, float bu, float bv,
-                  float cx, float cy, float cz, float cu, float cv, float dx, float dy, float dz, float du, float dv) {
-            vertex(ax, ay, az, au, av, nx, ny, nz);
-            vertex(bx, by, bz, bu, bv, nx, ny, nz);
-            vertex(cx, cy, cz, cu, cv, nx, ny, nz);
-            vertex(dx, dy, dz, du, dv, nx, ny, nz);
+        void quad(float nx, float ny, float nz, float[] a, float[] b, float[] c, float[] d, float[] uv) {
+            vertex(a, uv[0], uv[1], nx, ny, nz);
+            vertex(b, uv[2], uv[3], nx, ny, nz);
+            vertex(c, uv[4], uv[5], nx, ny, nz);
+            vertex(d, uv[6], uv[7], nx, ny, nz);
         }
 
-        private void vertex(float x, float y, float z, float u, float v, float nx, float ny, float nz) {
-            vc.addVertex(p, x, y, z).setColor(r, g, b, 255).setUv(u, v).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(p, nx, ny, nz);
+        private void vertex(float[] pos, float u, float v, float nx, float ny, float nz) {
+            vc.addVertex(p, pos[0], pos[1], pos[2]).setColor(r, g, this.b, 255).setUv(u, v).setOverlay(OverlayTexture.NO_OVERLAY).setLight(light).setNormal(p, nx, ny, nz);
         }
     }
 

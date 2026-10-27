@@ -27,7 +27,21 @@ public final class VehicleModels {
     /** Spins around the first spinning box's centre (a radar dish). */
     public static final int SPIN = 32;
 
-    public record Box(float x0, float y0, float z0, float x1, float y1, float z1, int rgb, int flags, Mat mat) {}
+    /**
+     * A box whose top face can be pulled in to make slopes: {@code insetFront/Back/Side} shrink the top face from
+     * the front (+Z), back and both sides, and {@code dropFront} lowers its front edge. All zero is a plain box;
+     * with them you get raked windshields, sloping hoods and faceted armor shells.
+     */
+    public record Box(float x0, float y0, float z0, float x1, float y1, float z1, int rgb, int flags, Mat mat,
+                      float insetFront, float insetBack, float insetSide, float dropFront) {
+        /** The eight corners: bottom (x0z0, x1z0, x1z1, x0z1), then top in the same order. */
+        public float[][] corners() {
+            float tx0 = x0 + insetSide, tx1 = x1 - insetSide, tz0 = z0 + insetBack, tz1 = z1 - insetFront;
+            return new float[][]{
+                    {x0, y0, z0}, {x1, y0, z0}, {x1, y0, z1}, {x0, y0, z1},
+                    {tx0, y1, tz0}, {tx1, y1, tz0}, {tx1, y1 - dropFront, tz1}, {tx0, y1 - dropFront, tz1}};
+        }
+    }
 
     /** Lettering painted on both sides at height {@code y} (top of the text), centred on {@code z}. */
     public record Decal(String text, int rgb, float halfWidth, float y, float z, float scale) {}
@@ -75,7 +89,15 @@ public final class VehicleModels {
         }
 
         Builder box(double x0, double y0, double z0, double x1, double y1, double z1, int rgb, int flags) {
-            boxes.add(new Box((float) Math.min(x0, x1), (float) y0, (float) z0, (float) Math.max(x0, x1), (float) y1, (float) z1, rgb, flags, mat));
+            boxes.add(new Box((float) Math.min(x0, x1), (float) y0, (float) z0, (float) Math.max(x0, x1), (float) y1, (float) z1, rgb, flags, mat, 0, 0, 0, 0));
+            return this;
+        }
+
+        /** A sloped box (see {@link Box}). */
+        Builder wedge(double x0, double y0, double z0, double x1, double y1, double z1, int rgb,
+                      double insetFront, double insetBack, double insetSide, double dropFront) {
+            boxes.add(new Box((float) Math.min(x0, x1), (float) y0, (float) z0, (float) Math.max(x0, x1), (float) y1, (float) z1, rgb, 0, mat,
+                    (float) insetFront, (float) insetBack, (float) insetSide, (float) dropFront));
             return this;
         }
 
@@ -167,13 +189,13 @@ public final class VehicleModels {
     private static Model gamingVan() {
         return new Builder()
                 .box(-1.05, 0.45, -2.6, 1.05, 1.15, 1.75, WHITE)
-                .box(-1.0, 0.45, 1.75, 1.0, 1.1, 2.7, WHITE)
+                .wedge(-1.0, 0.45, 1.75, 1.0, 1.1, 2.7, WHITE, 0.12, 0, 0.03, 0.22)
                 // camper box: thin walls, roof and back door, so the inside is a room
                 .pair(1.0, 1.15, -2.6, 1.05, 2.6, 0.3, WHITE)
                 .box(-1.05, 2.55, -2.6, 1.05, 2.6, 0.3, WHITE)
                 .box(-1.05, 1.15, -2.6, 1.05, 2.55, -2.55, WHITE)
                 .cab(1.0, 1.15, 2.15, 0.3, 1.75, WHITE)
-                .box(-1.0, 2.27, 0.3, 1.0, 2.6, 1.35, WHITE)
+                .wedge(-1.0, 2.27, 0.3, 1.0, 2.6, 1.35, WHITE, 0.35, 0, 0.04, 0)
                 // inside: vinyl floor, wood walls and ceiling, sofa bed across the back
                 .in(Mat.VINYL, b -> b.box(-1.0, 1.15, -2.55, 1.0, 1.17, 0.3, NEUTRAL))
                 .in(Mat.WOOD, b -> b
@@ -240,7 +262,7 @@ public final class VehicleModels {
         return new Builder()
                 .mat(Mat.ARMOR)
                 .box(-1.0, 0.55, -2.45, 1.0, 1.3, 1.2, body)
-                .box(-0.97, 0.55, 1.2, 0.97, 1.28, 2.45, body)
+                .wedge(-0.97, 0.55, 1.2, 0.97, 1.28, 2.45, body, 0.1, 0, 0.03, 0.12)
                 .box(-1.0, 1.3, -2.45, 1.0, 2.12, -0.2, body)
                 .cab(1.0, 1.3, 2.0, -0.2, 1.2, body)
                 // armor cage over the glass, push bar
@@ -268,8 +290,8 @@ public final class VehicleModels {
         return new Builder()
                 .mat(Mat.ARMOR)
                 .box(-1.05, 0.55, -2.75, 1.05, 1.35, 1.3, body)
-                .box(-1.0, 0.55, 1.3, 1.0, 1.32, 2.5, body)
-                .box(-1.05, 1.35, -2.75, 1.05, 2.17, -0.1, body)
+                .wedge(-1.0, 0.55, 1.3, 1.0, 1.32, 2.5, body, 0.15, 0, 0.04, 0.15)
+                .wedge(-1.05, 1.35, -2.75, 1.05, 2.17, -0.1, body, 0, 0.25, 0.1, 0)
                 .cab(1.05, 1.35, 2.05, -0.1, 1.3, body)
                 .in(Mat.PAINT, b -> b
                         .pair(1.05, 1.1, -2.75, 1.08, 1.22, 2.5, orange)
@@ -290,34 +312,39 @@ public final class VehicleModels {
                 .build();
     }
 
-    /** Dominator 3 ("Fail 3"): big angular armored truck, sloped visor, armored bed, hydraulic skirts. */
+    /**
+     * Dominator 3 ("Fail 3"): low, wide, faceted matte black shell on an F-350 chassis (fans say it looks like
+     * Darth Vader's helmet), narrow Lexan window slits, armored bed, hydraulic skirts, roof anemometer mast.
+     */
     private static Model dominator3() {
         int body = 0xB4B4B4;
         return new Builder()
                 .mat(Mat.ARMOR)
-                .box(-1.1, 0.6, -3.0, 1.1, 1.45, 1.4, body)
-                .box(-1.05, 0.6, 1.4, 1.05, 1.55, 2.4, body)
-                .box(-1.05, 0.6, 2.4, 1.05, 1.35, 2.95, body)
-                .box(-1.1, 1.45, -3.0, 1.1, 2.25, -0.4, body)
-                .cab(1.1, 1.45, 2.25, -0.4, 1.4, body)
-                .box(-1.1, 2.25, 1.3, 1.1, 2.37, 1.75, body)
-                // silver chevrons on the armored bed, red accent stripe
+                // lower hull and the faceted sloping nose
+                .wedge(-1.15, 0.6, -3.0, 1.15, 1.5, 2.0, body, 0, 0, 0.05, 0)
+                .wedge(-1.1, 0.6, 2.0, 1.1, 1.5, 3.05, body, 0.5, 0, 0.15, 0.45)
+                // armor band under the slits, the slits themselves, and the helmet over the cab
+                .box(-1.1, 1.5, -0.4, 1.1, 1.62, 1.55, body)
+                .wedge(-1.1, 1.5, 1.55, 1.1, 1.62, 2.0, body, 0.3, 0, 0.1, 0.1)
+                .cab(1.05, 1.62, 1.92, -0.4, 1.55, body)
+                .wedge(-1.1, 2.04, -0.6, 1.1, 2.45, 1.6, body, 0.55, 0.1, 0.3, 0.12)
+                // faceted armored bed behind the cab
+                .wedge(-1.15, 1.5, -3.0, 1.15, 2.3, -0.4, body, 0, 0.35, 0.25, 0)
+                // silver chevrons, red accent stripe
                 .in(Mat.STEEL, b -> b
-                        .pair(1.1, 1.6, -2.7, 1.13, 1.7, -0.7, 0xE0E4E8)
-                        .pair(1.1, 1.9, -2.4, 1.13, 2.0, -1.0, 0xE0E4E8)
-                        .box(-1.12, 0.3, 2.95, 1.12, 1.0, 3.2, 0x909498)
-                        .box(-0.45, 2.37, -0.3, 0.45, 2.62, 0.6, STEEL_TINT)
-                        .box(-0.04, 2.62, 0.1, 0.04, 3.3, 0.18, STEEL_TINT)
-                        .box(-0.3, 3.3, 0.0, 0.3, 3.35, 0.28, STEEL_TINT)
-                        .pair(1.12, 0.15, -2.9, 1.18, 1.05, 2.8, 0xB0B4B8, SKIRT))
-                .in(Mat.PAINT, b -> b.pair(1.1, 1.1, -3.0, 1.13, 1.2, 2.95, RED))
+                        .pair(1.15, 1.3, -2.8, 1.18, 1.38, -0.6, 0xE0E4E8)
+                        .box(-1.12, 0.3, 2.9, 1.12, 0.9, 3.2, 0x909498)
+                        .box(-0.04, 2.45, -0.2, 0.04, 3.2, -0.12, STEEL_TINT)
+                        .box(-0.3, 3.2, -0.3, 0.3, 3.25, -0.02, STEEL_TINT)
+                        .pair(1.16, 0.15, -2.9, 1.22, 1.05, 2.8, 0xB0B4B8, SKIRT))
+                .in(Mat.PAINT, b -> b.pair(1.1, 1.1, -3.0, 1.13, 1.2, 2.0, RED))
                 .in(Mat.PLASTIC, b -> b.box(-1.1, 0.4, -3.15, 1.1, 0.75, -3.0, NEUTRAL))
-                .in(Mat.GRILLE, b -> b.box(-0.6, 0.75, 2.95, 0.6, 1.2, 2.97, NEUTRAL))
-                .lights(1.05, 1.0, 2.95, -3.0)
-                .lightbar(0.8, 2.37, 0.9, 1.15)
+                .in(Mat.GRILLE, b -> b.box(-0.55, 0.7, 3.0, 0.55, 1.0, 3.03, NEUTRAL))
+                .lights(1.0, 0.75, 3.0, -3.0)
+                .lightbar(0.55, 2.33, 0.85, 1.02)
                 .wheels(1.08, 0.5, 2.0, -2.1)
                 .spike(0.6, 1.3, 0.6).spike(0.6, -0.8, 0.6).spike(0.6, -2.6, 0.6)
-                .decal("DOMINATOR 3", 0xE8E8E8, 1.14, 2.2, -1.7, 0.026)
+                .decal("DOMINATOR 3", 0xE8E8E8, 1.1, 1.08, -1.7, 0.022)
                 .build();
     }
 
@@ -327,8 +354,8 @@ public final class VehicleModels {
         Builder b = new Builder()
                 .mat(Mat.ARMOR_DENTED)
                 .box(-1.15, 0.65, -3.0, 1.15, 1.5, 1.4, body)
-                .box(-1.1, 0.65, 1.4, 1.1, 1.55, 2.95, body)
-                .box(-1.15, 1.5, -3.0, 1.15, 2.47, -0.6, body)
+                .wedge(-1.1, 0.65, 1.4, 1.1, 1.55, 2.95, body, 0.55, 0, 0.05, 0.35)
+                .wedge(-1.15, 1.5, -3.0, 1.15, 2.47, -0.6, body, 0, 0.25, 0.12, 0)
                 .cab(1.15, 1.5, 2.35, -0.6, 1.4, body)
                 .box(-1.15, 2.35, 1.3, 1.15, 2.47, 1.9, body)
                 .box(-1.1, 1.55, 1.4, 1.1, 1.75, 1.9, body)
@@ -352,7 +379,7 @@ public final class VehicleModels {
     private static Model dopplerOnWheels() {
         return new Builder()
                 .box(-1.1, 0.6, 0.6, 1.1, 1.45, 2.3, WHITE)
-                .box(-1.05, 0.6, 2.3, 1.05, 1.45, 3.2, WHITE)
+                .wedge(-1.05, 0.6, 2.3, 1.05, 1.45, 3.2, WHITE, 0.1, 0, 0.03, 0.18)
                 .box(-1.1, 1.45, 0.55, 1.1, 2.47, 0.62, WHITE)
                 .cab(1.1, 1.45, 2.35, 0.62, 2.3, WHITE)
                 .box(-1.1, 1.1, -0.4, 1.1, 2.0, 0.5, WHITE)
@@ -380,7 +407,7 @@ public final class VehicleModels {
     private static Model rentalCar() {
         int silver = 0xC4CAD2;
         return new Builder()
-                .box(-0.95, 0.35, -2.2, 0.95, 1.0, 2.1, silver)
+                .wedge(-0.95, 0.35, -2.2, 0.95, 1.0, 2.1, silver, 0.15, 0.1, 0.04, 0.12)
                 .box(-0.92, 1.0, -2.2, 0.92, 1.1, -1.25, silver)
                 .cab(0.92, 1.0, 1.65, -1.25, 0.75, silver)
                 .pair(0.92, 1.1, 0.55, 1.12, 1.25, 0.65, silver)
