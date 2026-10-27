@@ -1,0 +1,41 @@
+package com.interceptors.client;
+
+import com.interceptors.Interceptors;
+import com.interceptors.client.gui.VehicleHud;
+import com.interceptors.client.render.VehicleRenderer;
+import com.interceptors.compat.Storms;
+import com.interceptors.registry.ModEntities;
+import dev.protomanly.pmweather.event.GameBusClientEvents;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.fml.event.lifecycle.FMLClientSetupEvent;
+import net.neoforged.neoforge.client.event.EntityRenderersEvent;
+import net.neoforged.neoforge.client.event.RegisterGuiLayersEvent;
+import net.neoforged.neoforge.client.event.RegisterKeyMappingsEvent;
+
+@EventBusSubscriber(modid = Interceptors.MODID, value = Dist.CLIENT)
+public final class ClientSetup {
+    private ClientSetup() {}
+
+    @SubscribeEvent
+    public static void setup(FMLClientSetupEvent e) {
+        Storms.clientHandler = () -> GameBusClientEvents.weatherHandler;
+    }
+
+    @SubscribeEvent
+    public static void renderers(EntityRenderersEvent.RegisterRenderers e) {
+        ModEntities.VEHICLES.values().forEach(type -> e.registerEntityRenderer(type.get(), VehicleRenderer::new));
+    }
+
+    @SubscribeEvent
+    public static void keys(RegisterKeyMappingsEvent e) {
+        e.register(Keys.ANCHORS);
+        e.register(Keys.HORN);
+    }
+
+    @SubscribeEvent
+    public static void gui(RegisterGuiLayersEvent e) {
+        e.registerAboveAll(Interceptors.id("vehicle_hud"), VehicleHud::render);
+    }
+}

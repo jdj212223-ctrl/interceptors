@@ -1,0 +1,20 @@
+{
+  "horn": {
+    "sounds": [
+      "interceptors:horn"
+    ],
+    "subtitle": "subtitles.interceptors.horn"
+  },
+  "anchor_down": {
+    "sounds": [
+      "interceptors:anchor_down"
+    ],
+    "subtitle": "subtitles.interceptors.anchor_down"
+  },
+  "anchor_up": {
+    "sounds": [
+      "interceptors:anchor_up"
+    ],
+    "subtitle": "subtitles.interceptors.anchor_up"
+  }
+}
