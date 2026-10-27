@@ -35,6 +35,8 @@ neoForge {
         client {
             client()
             systemProperty 'neoforge.enabledGameTestNamespaces', project.mod_id
+            // ./gradlew runClient -Pshowcase jumps straight into the dev world (for screenshots).
+            if (project.hasProperty('showcase')) programArguments.addAll '--quickPlaySingleplayer', 'New World', '--width', '1280', '--height', '720'
         }
         server {
             server()
