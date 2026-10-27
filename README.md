@@ -41,8 +41,19 @@ The anchor computer can also **freeze** in a storm (the Dominator 3 three times 
 Stranded, and got Tornado of the Year"). Frozen means the anchors can't move until you **hold G for 2 seconds**
 to reboot it, which takes another 5 seconds. Hope the tornado isn't too close.
 
-The **DROP ANCHOR** panel under the dashboard shows what the anchors are doing: STANDBY (moving), READY,
-DEPLOYING, ANCHORED, RETRACTING, FAILED, FROZEN or REBOOTING. Anchors take 1.5 to 2.5 seconds to go down.
+The **DROP ANCHOR** overlay (top right, copied from the Dominator 3's) draws a wireframe of your vehicle and its
+anchor points: yellow STANDBY while moving, green READY, yellow DEPLOYING as the spikes drive into the ground,
+green ANCHORED, and red ERROR when the computer is frozen or the hydraulics are broken or full of mud. Anchors
+take 1.5 to 2.5 seconds to go down.
+
+**Mud:** driving on dirt, mud, sand or gravel (twice as fast in the rain), and dropping anchors into soft ground,
+packs mud into the hydraulics. A warning shows at 60%; at 100% they jam. Drive through water or use a repair kit
+to clean them.
+
+**Seats:** every vehicle seats 3 to 5 (driver, front passenger, back row). In a storm, nobody gets pulled out of
+their seat: you only leave by pressing Shift, or if the vehicle is wrecked. Intact windows also stop debris.
+Every vehicle has a live dash screen in front of the driver and a rugged laptop mounted for the front passenger;
+the **Rugged Laptop** item opens the same storm apps anywhere.
 
 Fix parts with a **Field Repair Kit** (right-click the vehicle; fixes the worst part by half). Fix body damage
 with iron ingots. Turn failures down or off in `interceptors-server.toml` (`failures.enabled`, `wearRate`,

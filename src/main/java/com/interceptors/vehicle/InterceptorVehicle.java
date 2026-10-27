@@ -7,6 +7,9 @@ import com.interceptors.config.InterceptorsConfig;
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.tags.BlockTags;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.network.chat.Component;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
@@ -51,6 +54,11 @@ public class InterceptorVehicle extends Entity {
     private static final EntityDataAccessor<Integer> REBOOT = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.INT);
     private static final EntityDataAccessor<Float> BATTERY = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Boolean> LIGHTS = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.BOOLEAN);
+    /** Mud and grit packed into the hydraulics, 0..100. At 100 they jam. */
+    private static final EntityDataAccessor<Float> GRIME = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.FLOAT);
+    public static final float GRIME_WARN = 60, GRIME_JAM = 100;
+    /** Soft ground fills the hydraulics: full speed through mud jams them in about two minutes, rain doubles it. */
+    private static final float GRIME_PER_TICK = 0.04f, GRIME_PER_SOFT_DEPLOY = 8, WASH_PER_TICK = 1.5f;
 
     public static final int RETRACT_TICKS = 20, REBOOT_TICKS = 100;
     /** Solar battery: a full charge runs the screens for about 17 in-game hours, and the sun fills it in about 7. */
@@ -62,8 +70,14 @@ public class InterceptorVehicle extends Entity {
     /** Sideways/vertical shove left over from the wind, so a gust carries on for a moment. */
     private Vec3 drift = Vec3.ZERO;
     private float deltaRotation;
+    /** Set while being destroyed, so riders can be thrown clear. */
+    private boolean wrecking;
+    /** Wind above which riders are held in their seats. */
+    public static final double STORM_HOLD_MPH = 40;
     /** How far it actually moved last tick, on every side (the server doesn't know the driver's speed). */
     private double groundSpeed;
+    @Nullable
+    private Vec3 lastTickPos;
     /** Wind the vehicle last felt, mph. Read by the dashboard. */
     private Vec3 lastWind = Vec3.ZERO;
     /** GameTests set this to fake a tornado; null means ask PMWeather. */
@@ -96,6 +110,33 @@ public class InterceptorVehicle extends Entity {
         builder.define(REBOOT, 0);
         builder.define(BATTERY, 100f);
         builder.define(LIGHTS, true);
+        builder.define(GRIME, 0f);
+    }
+
+    public float getGrime() {
+        return entityData.get(GRIME);
+    }
+
+    public void setGrime(float grime) {
+        float before = getGrime(), after = Mth.clamp(grime, 0, GRIME_JAM);
+        entityData.set(GRIME, after);
+        if (before < GRIME_WARN && after >= GRIME_WARN && after < GRIME_JAM) tellRiders("message.interceptors.grime_warning");
+        if (before < GRIME_JAM && after >= GRIME_JAM) {
+            tellRiders("message.interceptors.grime_jammed");
+            playVehicleSound(SoundEvents.PISTON_CONTRACT);
+        }
+    }
+
+    /** Hydraulics that can't move: broken, or jammed with mud. */
+    public boolean hydraulicsDown() {
+        return failed(Part.HYDRAULICS) || getGrime() >= GRIME_JAM;
+    }
+
+    /** Dirt, mud, sand, gravel, grass, farmland: anything that gets into the rams. */
+    private boolean onSoftGround() {
+        BlockState below = level().getBlockState(BlockPos.containing(getX(), getY() - 0.2, getZ()));
+        return below.is(BlockTags.DIRT) || below.is(BlockTags.SAND) || below.is(Blocks.GRAVEL) || below.is(Blocks.MUD)
+                || below.is(Blocks.FARMLAND) || below.is(Blocks.DIRT_PATH) || below.is(BlockTags.SNOW);
     }
 
     private static long packAll(int condition) {
@@ -160,14 +201,14 @@ public class InterceptorVehicle extends Entity {
     }
 
     private int deployTicks() {
-        return spec.deployTicks() * (Part.warning(condition(Part.HYDRAULICS)) ? 2 : 1);
+        return spec.deployTicks() * (Part.warning(condition(Part.HYDRAULICS)) || getGrime() >= GRIME_WARN ? 2 : 1);
     }
 
     public AnchorStatus anchorStatus() {
         if (!spec.hasAnchors()) return AnchorStatus.NONE;
         if (getReboot() > 0) return AnchorStatus.REBOOTING;
         if (isFrozen() || failed(Part.COMPUTER)) return AnchorStatus.FROZEN;
-        if (failed(Part.HYDRAULICS)) return AnchorStatus.FAILED;
+        if (hydraulicsDown()) return AnchorStatus.FAILED;
         int d = getDeploy();
         if (d > 0) return AnchorStatus.DEPLOYING;
         if (d < 0) return AnchorStatus.RETRACTING;
@@ -216,6 +257,8 @@ public class InterceptorVehicle extends Entity {
         entityData.set(FROZEN, tag.getBoolean("Frozen"));
         setBattery(tag.contains("Battery") ? tag.getFloat("Battery") : 100);
         entityData.set(LIGHTS, !tag.contains("Lights") || tag.getBoolean("Lights"));
+        entityData.set(GRIME, tag.getFloat("Grime"));
+        entityData.set(DEPLOY, tag.getInt("Deploy"));
     }
 
     @Override
@@ -228,6 +271,8 @@ public class InterceptorVehicle extends Entity {
         tag.putBoolean("Frozen", isFrozen());
         tag.putFloat("Battery", getBattery());
         tag.putBoolean("Lights", lightsOn());
+        tag.putFloat("Grime", getGrime());
+        tag.putInt("Deploy", getDeploy());
     }
 
     // ------------------------------------------------------------------ actions
@@ -250,9 +295,12 @@ public class InterceptorVehicle extends Entity {
             return null;
         }
         if (failed(Part.HYDRAULICS)) return "message.interceptors.hydraulics_failed";
+        if (getGrime() >= GRIME_JAM) return "message.interceptors.grime_jammed";
         if (Math.max(Math.abs(speed), groundSpeed) > 0.08) return "message.interceptors.stop_first";
         entityData.set(DEPLOY, deployTicks());
         speed = 0;
+        // Spikes driven into soft ground pack mud up into the rams.
+        if (onSoftGround() && InterceptorsConfig.get(InterceptorsConfig.FAILURES)) setGrime(getGrime() + GRIME_PER_SOFT_DEPLOY);
         playVehicleSound(ModSounds.ANCHOR_DOWN.get());
         return null;
     }
@@ -318,6 +366,18 @@ public class InterceptorVehicle extends Entity {
         return worst;
     }
 
+    /**
+     * Whether a rider may leave. Tornado wind never pulls anyone out of an intact vehicle: you only get out by
+     * choosing to (sneak) or because the vehicle is gone.
+     */
+    public boolean mayLeave(Entity rider, boolean wantsOut) {
+        if (wantsOut || wrecking || isRemoved() || !isAlive() || !rider.isAlive() || rider.isRemoved()) return true;
+        if (rider instanceof net.minecraft.server.level.ServerPlayer sp && sp.hasDisconnected()) return true;
+        // Outside a storm, let commands, portals and the like move people as usual.
+        Vec3 wind = forcedWind != null ? forcedWind : lastWind;
+        return wind.horizontalDistance() < STORM_HOLD_MPH;
+    }
+
     public void honk() {
         level().playSound(null, getX(), getY(), getZ(), ModSounds.HORN.get(), SoundSource.NEUTRAL, 2.0f, 1.0f);
     }
@@ -327,8 +387,13 @@ public class InterceptorVehicle extends Entity {
         ItemStack stack = player.getItemInHand(hand);
         if (stack.is(ModItems.REPAIR_KIT.get())) {
             if (!level().isClientSide) {
+                boolean cleaned = getGrime() > 0;
+                if (cleaned) setGrime(0);
                 Part fixed = repairWorstPart();
-                if (fixed == null) {
+                if (fixed == null && cleaned) {
+                    if (!player.getAbilities().instabuild) stack.shrink(1);
+                    player.displayClientMessage(Component.translatable("message.interceptors.cleaned").withStyle(ChatFormatting.GREEN), true);
+                } else if (fixed == null) {
                     player.displayClientMessage(Component.translatable("message.interceptors.nothing_to_fix"), true);
                 } else {
                     if (!player.getAbilities().instabuild) stack.shrink(1);
@@ -374,6 +439,7 @@ public class InterceptorVehicle extends Entity {
     /** Destroyed: throw everyone out, smoke, scrap. */
     public void wreck() {
         if (!(level() instanceof ServerLevel server) || isRemoved()) return;
+        wrecking = true;
         ejectPassengers();
         server.sendParticles(ParticleTypes.EXPLOSION, getX(), getY() + 1, getZ(), 6, 1.2, 0.6, 1.2, 0);
         server.sendParticles(ParticleTypes.LARGE_SMOKE, getX(), getY() + 1, getZ(), 40, 1.2, 0.8, 1.2, 0.05);
@@ -459,7 +525,9 @@ public class InterceptorVehicle extends Entity {
 
     @Override
     public void tick() {
-        groundSpeed = Math.sqrt((getX() - xo) * (getX() - xo) + (getZ() - zo) * (getZ() - zo));
+        // Measured against our own last position: the level resets xo/zo right before every tick.
+        if (lastTickPos != null) groundSpeed = Math.sqrt((getX() - lastTickPos.x) * (getX() - lastTickPos.x) + (getZ() - lastTickPos.z) * (getZ() - lastTickPos.z));
+        lastTickPos = position();
         if (getHurtTime() > 0) entityData.set(HURT_TIME, getHurtTime() - 1);
         if (!level().isClientSide) serverTick();
         super.tick();
@@ -488,6 +556,12 @@ public class InterceptorVehicle extends Entity {
                 entityData.set(FROZEN, false);
                 tellRiders("message.interceptors.rebooted");
             }
+        }
+        if (isInWater()) {
+            if (getGrime() > 0) setGrime(getGrime() - WASH_PER_TICK);
+        } else if (groundSpeed > 0.05 && onGround() && InterceptorsConfig.get(InterceptorsConfig.FAILURES) && onSoftGround()) {
+            float rate = (float) (InterceptorsConfig.get(InterceptorsConfig.WEAR_RATE) * GRIME_PER_TICK * Math.min(1, groundSpeed / spec.maxSpeed()));
+            setGrime(getGrime() + rate * (level().isRainingAt(blockPosition().above()) ? 2 : 1));
         }
         if (spec.solar() && tickCount % 20 == 0) {
             float battery = getBattery();

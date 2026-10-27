@@ -77,6 +77,49 @@ public final class VehicleModels {
         return MODELS.containsKey(id);
     }
 
+    private static final Map<String, List<Box>> FURNISHED = new java.util.concurrent.ConcurrentHashMap<>();
+
+    /**
+     * The model plus what every vehicle gets inside: a seat under each rider (unless the model already has one,
+     * like the van's sofa), the dashboard screen in front of the driver, and a rugged laptop on a mount for the
+     * front passenger.
+     */
+    public static List<Box> furnished(com.interceptors.vehicle.VehicleSpec spec) {
+        return FURNISHED.computeIfAbsent(spec.id(), id -> {
+            List<Box> all = new ArrayList<>(get(id));
+            Builder b = new Builder();
+            for (net.minecraft.world.phys.Vec3 seat : spec.seats()) {
+                boolean hasSeat = all.stream().anyMatch(x -> x.mat() == Mat.FABRIC && seat.x > x.x0() && seat.x < x.x1()
+                        && seat.z > x.z0() && seat.z < x.z1() && seat.y - 0.1 > x.y0() - 0.2 && seat.y - 0.1 < x.y1() + 0.1);
+                if (hasSeat) continue;
+                double sx = seat.x, sy = seat.y, sz = seat.z;
+                b.in(Mat.FABRIC, f -> f
+                        .box(sx - 0.24, sy - 0.22, sz - 0.3, sx + 0.24, sy + 0.04, sz + 0.2, 0x4A4E54)
+                        .box(sx - 0.24, sy + 0.04, sz - 0.4, sx + 0.24, sy + 0.78, sz - 0.3, 0x4A4E54)
+                        .box(sx - 0.15, sy + 0.78, sz - 0.39, sx + 0.15, sy + 0.92, sz - 0.31, 0x3A3E44));
+            }
+            net.minecraft.world.phys.Vec3 driver = spec.seats().get(0);
+            double dz = driver.z + DASH_AHEAD, dy = driver.y;
+            b.in(Mat.PLASTIC, f -> f.box(-DASH_HALF_WIDTH - 0.03, dy + DASH_BOTTOM - 0.03, dz, DASH_HALF_WIDTH + 0.03, dy + DASH_TOP + 0.03, dz + 0.06, NEUTRAL));
+            if (spec.seats().size() > 1) {
+                double lx = spec.seats().get(1).x, lz = dz - 0.05;
+                // Toughbook-style rugged laptop on a pole mount: thick grey case, rubber corners, glowing screen.
+                b.in(Mat.STEEL, f -> f.box(lx - 0.02, dy + 0.2, lz + 0.05, lx + 0.02, dy + 0.56, lz + 0.09, STEEL_TINT))
+                        .in(Mat.PLASTIC, f -> f
+                                .box(lx - 0.19, dy + 0.56, lz - 0.14, lx + 0.19, dy + 0.6, lz + 0.1, 0xA8ACB0)
+                                .box(lx - 0.19, dy + 0.6, lz + 0.06, lx + 0.19, dy + 0.84, lz + 0.1, 0xA8ACB0)
+                                .box(lx - 0.21, dy + 0.56, lz + 0.04, lx - 0.17, dy + 0.86, lz + 0.11, 0x303030)
+                                .box(lx + 0.17, dy + 0.56, lz + 0.04, lx + 0.21, dy + 0.86, lz + 0.11, 0x303030))
+                        .in(Mat.SCREEN, f -> f.box(lx - 0.16, dy + 0.62, lz + 0.055, lx + 0.16, dy + 0.82, lz + 0.06, NEUTRAL, GLOW));
+            }
+            all.addAll(b.build().boxes());
+            return List.copyOf(all);
+        });
+    }
+
+    /** Where the driver's dash screen sits, relative to the driver's seat: ahead, and how high its face runs. */
+    public static final double DASH_AHEAD = 0.45, DASH_BOTTOM = 0.66, DASH_TOP = 0.9, DASH_HALF_WIDTH = 0.3;
+
     /** Collects boxes in the current material; {@code pair} adds a box and its mirror across x=0. */
     private static final class Builder {
         final List<Box> boxes = new ArrayList<>();
@@ -157,6 +200,7 @@ public final class VehicleModels {
         /** A ground spike that punches down with the anchors: hydraulic ram plus a foot. */
         Builder spike(double x, double z, double bodyBottom) {
             return in(Mat.STEEL, b -> b
+                    .pair(x - 0.11, bodyBottom - 0.16, z - 0.11, x + 0.11, bodyBottom, z + 0.11, 0x8A8E92)
                     .pair(x - 0.07, -0.55, z - 0.07, x + 0.07, bodyBottom, z + 0.07, STEEL_TINT, ANCHOR)
                     .pair(x - 0.03, -0.75, z - 0.03, x + 0.03, -0.55, z + 0.03, 0x707070, ANCHOR));
         }
@@ -324,7 +368,8 @@ public final class VehicleModels {
                 .wedge(-1.15, 0.6, -3.0, 1.15, 1.5, 2.0, body, 0, 0, 0.05, 0)
                 .wedge(-1.1, 0.6, 2.0, 1.1, 1.5, 3.05, body, 0.5, 0, 0.15, 0.45)
                 // armor band under the slits, the slits themselves, and the helmet over the cab
-                .box(-1.1, 1.5, -0.4, 1.1, 1.62, 1.55, body)
+                .pair(1.0, 1.5, -0.4, 1.1, 1.62, 1.55, body)
+                .box(-1.1, 1.5, 1.45, 1.1, 1.62, 1.55, body)
                 .wedge(-1.1, 1.5, 1.55, 1.1, 1.62, 2.0, body, 0.3, 0, 0.1, 0.1)
                 .cab(1.05, 1.62, 1.92, -0.4, 1.55, body)
                 .wedge(-1.1, 2.04, -0.6, 1.1, 2.45, 1.6, body, 0.55, 0.1, 0.3, 0.12)
@@ -343,7 +388,8 @@ public final class VehicleModels {
                 .lights(1.0, 0.75, 3.0, -3.0)
                 .lightbar(0.55, 2.33, 0.85, 1.02)
                 .wheels(1.08, 0.5, 2.0, -2.1)
-                .spike(0.6, 1.3, 0.6).spike(0.6, -0.8, 0.6).spike(0.6, -2.6, 0.6)
+                // four anchor points, like the overlay: front corner, behind the front wheel, ahead of the rear wheel, rear corner
+                .spike(0.6, 2.75, 0.6).spike(0.6, 1.35, 0.6).spike(0.6, -1.45, 0.6).spike(0.6, -2.85, 0.6)
                 .decal("DOMINATOR 3", 0xE8E8E8, 1.1, 1.08, -1.7, 0.022)
                 .build();
     }

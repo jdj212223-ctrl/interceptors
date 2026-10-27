@@ -2,6 +2,7 @@ package com.interceptors.client;
 
 import com.interceptors.Interceptors;
 import com.interceptors.client.gui.DeviceScreen;
+import com.interceptors.client.gui.DropAnchorHud;
 import com.interceptors.client.gui.VehicleHud;
 import com.interceptors.client.render.VehicleRenderer;
 import com.interceptors.compat.Storms;
@@ -43,5 +44,6 @@ public final class ClientSetup {
     @SubscribeEvent
     public static void gui(RegisterGuiLayersEvent e) {
         e.registerAboveAll(Interceptors.id("vehicle_hud"), VehicleHud::render);
+        e.registerAboveAll(Interceptors.id("drop_anchor"), DropAnchorHud::render);
     }
 }

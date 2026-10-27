@@ -84,7 +84,7 @@ public class DeviceScreen extends Screen {
     // ------------------------------------------------------------------ layout
 
     private boolean hasDeck() {
-        return device == Device.LAPTOP || device == Device.MACBOOK;
+        return device == Device.LAPTOP || device == Device.MACBOOK || device == Device.RUGGED_LAPTOP;
     }
 
     @Override
@@ -153,6 +153,25 @@ public class DeviceScreen extends Screen {
                     }
                 }
                 g.fill(sx + sw / 2 - 30, dy + 28, sx + sw / 2 + 30, dy + 38, mac ? 0xFFB9BDC2 : 0xFF2B2D31);
+            }
+            case RUGGED_LAPTOP -> {
+                // Thick grey magnesium case, black rubber bumpers on the corners, a carry handle on the front.
+                g.fill(sx - 12, sy - 12, sx + sw + 12, sy + sh + 10, 0xFF6A6E72);
+                g.fill(sx - 4, sy - 4, sx + sw + 4, sy + sh + 4, 0xFF1A1B1D);
+                int dy = sy + sh + 10;
+                g.fill(sx - 30, dy, sx + sw + 30, dy + 44, 0xFF5E6266);
+                for (int r = 0; r < 4; r++) {
+                    for (int c = 0; c < 16; c++) {
+                        int kw = (sw + 20) / 16;
+                        g.fill(sx - 10 + c * kw, dy + 4 + r * 7, sx - 10 + (c + 1) * kw - 2, dy + 9 + r * 7, 0xFF202124);
+                    }
+                }
+                g.fill(sx + sw / 2 - 26, dy + 32, sx + sw / 2 + 26, dy + 41, 0xFF46494C);
+                g.fill(sx + sw / 2 - 40, dy + 44, sx + sw / 2 + 40, dy + 52, 0xFF2A2B2D);
+                g.fill(sx + sw / 2 - 34, dy + 44, sx + sw / 2 + 34, dy + 48, 0xFF5E6266);
+                for (int[] c : new int[][]{{sx - 16, sy - 16}, {sx + sw + 4, sy - 16}, {sx - 34, dy + 30}, {sx + sw + 18, dy + 30}}) {
+                    g.fill(c[0], c[1], c[0] + 16, c[1] + 16, 0xFF141414);
+                }
             }
             case IPAD -> {
                 g.fill(sx - 12, sy - 12, sx + sw + 12, sy + sh + 12, 0xFF2E3034);

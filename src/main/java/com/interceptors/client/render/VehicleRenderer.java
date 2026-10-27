@@ -1,6 +1,11 @@
 package com.interceptors.client.render;
 
+import com.interceptors.compat.Storms;
+import com.interceptors.vehicle.AnchorStatus;
 import com.interceptors.vehicle.InterceptorVehicle;
+import com.interceptors.vehicle.Part;
+import com.interceptors.vehicle.VehicleSpec;
+import com.interceptors.vehicle.WindPhysics;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
@@ -14,6 +19,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.Vec3;
 
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -31,10 +37,10 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         this.shadowRadius = 1.4f;
     }
 
-    private static Map<Mat, List<VehicleModels.Box>> grouped(String id) {
-        return BY_MATERIAL.computeIfAbsent(id, key -> {
+    private static Map<Mat, List<VehicleModels.Box>> grouped(VehicleSpec spec) {
+        return BY_MATERIAL.computeIfAbsent(spec.id(), key -> {
             Map<Mat, List<VehicleModels.Box>> map = new EnumMap<>(Mat.class);
-            for (VehicleModels.Box b : VehicleModels.get(key)) map.computeIfAbsent(b.mat(), m -> new ArrayList<>()).add(b);
+            for (VehicleModels.Box b : VehicleModels.furnished(spec)) map.computeIfAbsent(b.mat(), m -> new ArrayList<>()).add(b);
             return map;
         });
     }
@@ -51,7 +57,7 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         float time = vehicle.tickCount + partialTick;
         String id = vehicle.spec().id();
         VehicleModels.Box pivot = VehicleModels.get(id).stream().filter(b -> (b.flags() & VehicleModels.SPIN) != 0).findFirst().orElse(null);
-        Map<Mat, List<VehicleModels.Box>> groups = grouped(id);
+        Map<Mat, List<VehicleModels.Box>> groups = grouped(vehicle.spec());
 
         // Solid boxes first, then the see-through glass on top of them.
         for (int pass = 0; pass < 2; pass++) {
@@ -81,6 +87,7 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
             }
         }
         decals(id, pose, buffers, light);
+        dashboard(vehicle, pose, buffers);
         pose.popPose();
         super.render(vehicle, yaw, partialTick, pose, buffers, light);
     }
@@ -100,6 +107,53 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                 pose.popPose();
             }
         }
+    }
+
+    /**
+     * The live dash screen in front of the driver: speed, wind, the nearest tornado, anchor status and the
+     * hydraulics. Goes dark with the computer, like the rest of the dash.
+     */
+    private void dashboard(InterceptorVehicle v, PoseStack pose, MultiBufferSource buffers) {
+        Vec3 seat = v.spec().seats().get(0);
+        float z = (float) (seat.z + VehicleModels.DASH_AHEAD) - 0.004f, top = (float) (seat.y + VehicleModels.DASH_TOP);
+        float halfWidth = (float) VehicleModels.DASH_HALF_WIDTH, height = (float) (VehicleModels.DASH_TOP - VehicleModels.DASH_BOTTOM);
+        VertexConsumer vc = buffers.getBuffer(RenderType.entityCutoutNoCull(Mat.PLAIN.texture));
+        Face face = new Face(pose.last(), vc, 8, 14, 22, FULL_BRIGHT);
+        face.quad(0, 0, -1, new float[]{halfWidth, top, z}, new float[]{-halfWidth, top, z}, new float[]{-halfWidth, top - height, z},
+                new float[]{halfWidth, top - height, z}, new float[]{0, 0, 1, 0, 1, 1, 0, 1});
+
+        Font font = getFont();
+        float s = 0.0034f;
+        pose.pushPose();
+        pose.translate(halfWidth - 0.02f, top - 0.02f, z - 0.002f);
+        pose.mulPose(Axis.YP.rotationDegrees(180));
+        pose.scale(s, -s, s);
+        List<Component> lines = new ArrayList<>();
+        boolean blink = v.tickCount / 6 % 2 == 0;
+        if (!v.screensWork()) {
+            if (blink) lines.add(Component.translatable(v.getReboot() > 0 ? "dash.interceptors.rebooting" : "dash.interceptors.not_responding").withStyle(ChatFormatting.AQUA));
+        } else {
+            double mph = WindPhysics.toMph(Math.abs(v.getSpeed()));
+            double wind = v.lastWind().horizontalDistance();
+            lines.add(Component.literal(String.format("%d MPH   WIND %d", Math.round(mph), Math.round(wind))).withStyle(ChatFormatting.WHITE));
+            Storms.StormInfo t = Storms.nearestTornado(v.level(), v.position());
+            lines.add(t == null ? Component.translatable("dash.interceptors.no_tornado").withStyle(ChatFormatting.GRAY)
+                    : Component.literal(String.format("%s %dM %s", t.efLabel(), Math.round(t.distance()), Storms.compassName(t.bearing()))).withStyle(ChatFormatting.RED));
+            AnchorStatus status = v.anchorStatus();
+            if (status != AnchorStatus.NONE) {
+                lines.add(Component.translatable("dash.interceptors.anchor", Component.translatable(status.key()))
+                        .withStyle(st -> st.withColor(status.color())));
+                lines.add(Component.literal(String.format("HYD %d%%  MUD %d%%", v.condition(Part.HYDRAULICS), Math.round(v.getGrime())))
+                        .withStyle(v.getGrime() >= InterceptorVehicle.GRIME_WARN ? ChatFormatting.GOLD : ChatFormatting.GRAY));
+            }
+            lines.add(Component.literal(String.format("ARMOR %d%%", Math.round(v.healthFraction() * 100))).withStyle(ChatFormatting.GREEN));
+        }
+        int y = 0;
+        for (Component line : lines) {
+            font.drawInBatch(line, 0, y, 0xFFFFFF, false, pose.last().pose(), buffers, Font.DisplayMode.POLYGON_OFFSET, 0, FULL_BRIGHT);
+            y += 10;
+        }
+        pose.popPose();
     }
 
     /** Gaming-rig colour cycle, offset per strip by its base colour so they don't all match. */

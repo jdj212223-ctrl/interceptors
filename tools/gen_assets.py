@@ -681,6 +681,24 @@ def device_blocks():
 
 
 HANDHELD = {
+    "rugged_laptop": ("""
+................
+................
+..KKKKKKKKKKKK..
+..KGGGGGGGGGGK..
+..GSSSSSSSSSSG..
+..GSSSRSSSSSSG..
+..GSSSSSSSSSSG..
+..GSSSSSSGSSSG..
+..KGGGGGGGGGGK..
+.KGGGGGGGGGGGGK.
+.GLLLLLLLLLLLLG.
+.KGGGGGGGGGGGGK.
+.....BBBBBB.....
+.....B....B.....
+................
+................
+""", {"K": "141414", "G": "6a6e72", "S": "102030", "R": "e04030", "L": "202124", "B": "2a2b2d"}),
     "repair_kit": ("""
 ................
 ................
@@ -754,6 +772,9 @@ def recipes():
     write_json({"type": "minecraft:crafting_shapeless", "category": "misc",
                 "ingredients": [item(f"{NS}:laptop"), item("minecraft:apple"), item("minecraft:iron_ingot")],
                 "result": {"id": f"{NS}:macbook", "count": 1}}, ROOT, "data", NS, "recipe", "macbook.json")
+    write_json({"type": "minecraft:crafting_shapeless", "category": "misc",
+                "ingredients": [item(f"{NS}:laptop"), item("minecraft:iron_ingot"), item("minecraft:iron_ingot"), item("minecraft:leather")],
+                "result": {"id": f"{NS}:rugged_laptop", "count": 1}}, ROOT, "data", NS, "recipe", "rugged_laptop.json")
     shaped("ipad", ["IGI", "IQI", "IRI"], {"G": "minecraft:glass_pane", "Q": "minecraft:quartz", "R": "minecraft:redstone", "I": "minecraft:iron_ingot"})
     rod, cart = "minecraft:lightning_rod", "minecraft:minecart"
     shaped("gaming_van", ["WWW", "WCW", "IMI"], {"W": "minecraft:white_concrete", "C": f"{NS}:computer", "I": "minecraft:iron_ingot", "M": cart})

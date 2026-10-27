@@ -1,9 +1,6 @@
 package com.interceptors.client.gui;
 
-import com.interceptors.client.ClientEvents;
-import com.interceptors.client.Keys;
 import com.interceptors.compat.Storms;
-import com.interceptors.vehicle.AnchorStatus;
 import com.interceptors.vehicle.InterceptorVehicle;
 import com.interceptors.vehicle.Part;
 import com.interceptors.vehicle.WindPhysics;
@@ -14,8 +11,8 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.network.chat.Component;
 
 /**
- * The basic car display: speed, armor, wind and the nearest tornado, plus the "DROP ANCHOR" panel from the
- * intercept videos and warning lights for parts that are wearing out.
+ * The basic car display, top left: speed, armor, wind and the nearest tornado, plus warning lights for parts
+ * that are wearing out. The anchor overlay is {@link DropAnchorHud}, top right.
  */
 public final class VehicleHud {
     private VehicleHud() {}
@@ -63,60 +60,20 @@ public final class VehicleHud {
             }
         }
 
-        anchorPanel(g, font, v, x, y + h + 4, blink);
-        warnings(g, font, v, x + 6 + 100, y + h + 4, blink);
-    }
-
-    /** "DROP ANCHOR": a top-down drawing of the vehicle with its anchors, and what they're doing. */
-    private static void anchorPanel(GuiGraphics g, Font font, InterceptorVehicle v, int x, int y, boolean blink) {
-        AnchorStatus status = v.anchorStatus();
-        if (status == AnchorStatus.NONE) return;
-        int w = 100, h = 58;
-        g.fill(x, y, x + w, y + h, 0xC0101418);
-        g.fill(x, y, x + w, y + 1, 0xFF000000 | status.color());
-        g.drawString(font, Component.translatable("hud.interceptors.drop_anchor"), x + 5, y + 4, 0xFFFFFF);
-
-        int bx = x + 8, by = y + 16, bw = 16, bh = 30;
-        g.fill(bx, by, bx + bw, by + bh, 0xFF505860);
-        g.fill(bx + 2, by + 2, bx + bw - 2, by + 8, 0xFF22303C);
-        float ext = v.anchorExtension();
-        int spikeColor = ext >= 1 ? 0xFF000000 | AnchorStatus.ANCHORED.color() : ext > 0 ? 0xFFFFC040 : 0xFF3A3F45;
-        for (int sy : new int[]{by + 4, by + bh - 7}) {
-            int out = Math.round(4 * ext);
-            g.fill(bx - 2 - out, sy, bx, sy + 3, spikeColor);
-            g.fill(bx + bw, sy, bx + bw + 2 + out, sy + 3, spikeColor);
-        }
-
-        Component text = Component.translatable(status.key());
-        boolean flash = status == AnchorStatus.FROZEN || status == AnchorStatus.FAILED || status == AnchorStatus.DEPLOYING;
-        if (!flash || blink) g.drawString(font, text, x + 34, y + 20, status.color());
-
-        int barX = x + 34, barY = y + 33, barW = w - 40;
-        if (status == AnchorStatus.DEPLOYING || status == AnchorStatus.RETRACTING) {
-            bar(g, barX, barY, barW, ext, status.color());
-        } else if (status == AnchorStatus.REBOOTING) {
-            bar(g, barX, barY, barW, 1 - v.getReboot() / (float) InterceptorVehicle.REBOOT_TICKS, status.color());
-        } else if (status == AnchorStatus.FROZEN) {
-            if (v.failed(Part.COMPUTER)) {
-                g.drawString(font, Component.translatable("hud.interceptors.needs_repair"), barX, barY, 0xFF8080);
-            } else {
-                g.drawString(font, Component.translatable("hud.interceptors.hold_to_reboot", Keys.ANCHORS.getTranslatedKeyMessage()), barX, barY, 0xC0C8D0);
-                float hold = ClientEvents.rebootHoldProgress();
-                if (hold > 0) bar(g, barX, barY + 11, barW, hold, 0x30A0FF);
-            }
-        } else if (status == AnchorStatus.READY) {
-            g.drawString(font, Component.translatable("hud.interceptors.press_to_drop", Keys.ANCHORS.getTranslatedKeyMessage()), barX, barY, 0xC0C8D0);
-        }
-    }
-
-    private static void bar(GuiGraphics g, int x, int y, int w, float fraction, int color) {
-        g.fill(x, y, x + w, y + 5, 0xFF303030);
-        g.fill(x, y, x + (int) (w * Math.min(1, Math.max(0, fraction))), y + 5, 0xFF000000 | color);
+        warnings(g, font, v, x, y + h + 4, blink);
     }
 
     /** One warning light per part that's wearing out or broken. */
     private static void warnings(GuiGraphics g, Font font, InterceptorVehicle v, int x, int y, boolean blink) {
         int line = 0;
+        if (v.getGrime() >= InterceptorVehicle.GRIME_WARN) {
+            boolean jammed = v.getGrime() >= InterceptorVehicle.GRIME_JAM;
+            Component name = Component.translatable(jammed ? "hud.interceptors.grime_jammed" : "hud.interceptors.grime", (int) v.getGrime());
+            g.fill(x, y, x + font.width(name) + 14, y + 10, 0xC0101418);
+            if (!jammed || blink) g.fill(x + 2, y + 2, x + 8, y + 8, jammed ? 0xFFFF3030 : 0xFFB07030);
+            g.drawString(font, name, x + 11, y + 1, jammed ? 0xFF3030 : 0xD09050);
+            line++;
+        }
         for (Part p : Part.values()) {
             int c = v.condition(p);
             if (!Part.warning(c)) continue;

@@ -248,7 +248,7 @@ public class InterceptorsGameTests {
             // Only the front seats need a view; rear passengers ride in the back like cargo.
             for (Vec3 seat : spec.seats().subList(0, 2)) {
                 Vec3 eye = seat.add(0, EYE_ABOVE_SEAT, 0);
-                for (VehicleModels.Box b : VehicleModels.get(spec.id())) {
+                for (VehicleModels.Box b : VehicleModels.furnished(spec)) {
                     if ((b.flags() & (VehicleModels.CLEAR | VehicleModels.ANCHOR)) != 0) continue;
                     double r = 0.12;
                     boolean inside = eye.x > b.x0() - r && eye.x < b.x1() + r && eye.y > b.y0() - r && eye.y < b.y1() + r
@@ -262,6 +262,55 @@ public class InterceptorsGameTests {
 
     /** Seat height to eye height: a player rides 0.6 below the seat point and their eyes are 1.62 above their feet. */
     private static final double EYE_ABOVE_SEAT = 1.62 - 0.6;
+
+    @GameTest(template = "pad")
+    public static void mudJamsTheHydraulicsAndWaterWashesIt(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        dom.setGrime(InterceptorVehicle.GRIME_JAM);
+        helper.assertTrue(dom.hydraulicsDown() && dom.anchorStatus() == AnchorStatus.FAILED, "mud didn't jam the hydraulics");
+        helper.assertTrue("message.interceptors.grime_jammed".equals(dom.toggleAnchors()), "anchors moved through jammed hydraulics");
+        dom.setGrime(0);
+        helper.assertTrue(!dom.hydraulicsDown() && dom.toggleAnchors() == null, "clean hydraulics still jammed");
+        helper.succeed();
+    }
+
+    @GameTest(template = "pad", timeoutTicks = 200)
+    public static void drivingThroughDirtFillsTheHydraulics(GameTestHelper helper) {
+        // A dirt track across the pad, and a van driving down it.
+        for (int x = 0; x < 17; x++) for (int z = 0; z < 17; z++) helper.setBlock(new BlockPos(x, 1, z), net.minecraft.world.level.block.Blocks.MUD);
+        InterceptorVehicle van = park(helper, VehicleSpec.GAMING_VAN);
+        van.moveTo(van.getX(), van.getY() - 0.125, helper.absoluteVec(new Vec3(0, 0, 1.5)).z, 0, 0);
+        helper.onEachTick(() -> {
+            if (van.getZ() < helper.absoluteVec(new Vec3(0, 0, 14)).z) van.simulate(1, 0);
+        });
+        helper.runAfterDelay(150, () -> {
+            helper.assertTrue(van.getGrime() > 0.5f, "driving through mud left the hydraulics clean: " + van.getGrime());
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "pad")
+    public static void ridersStayInDuringATornado(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        net.minecraft.world.entity.npc.Villager rider = net.minecraft.world.entity.EntityType.VILLAGER.create(helper.getLevel());
+        rider.moveTo(dom.position());
+        helper.getLevel().addFreshEntity(rider);
+        helper.assertTrue(rider.startRiding(dom), "villager couldn't sit in the Dom 3");
+        dom.forcedWind = new Vec3(260, 0, 0);
+        rider.stopRiding();
+        helper.assertTrue(rider.getVehicle() == dom, "an EF5 pulled the rider out of their seat");
+        helper.assertTrue(dom.mayLeave(rider, true), "rider can't choose to get out");
+        dom.forcedWind = new Vec3(5, 0, 0);
+        rider.stopRiding();
+        helper.assertTrue(rider.getVehicle() == null, "rider stuck in the seat on a calm day");
+        helper.succeed();
+    }
+
+    @GameTest(template = "pad")
+    public static void everyVehicleSeatsAFewPeople(GameTestHelper helper) {
+        for (VehicleSpec spec : VehicleSpec.ALL) helper.assertTrue(spec.seats().size() >= 3, spec.id() + " only seats " + spec.seats().size());
+        helper.succeed();
+    }
 
     @GameTest(template = "pad")
     public static void readsRealPMWeather(GameTestHelper helper) {

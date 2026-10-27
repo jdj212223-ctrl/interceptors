@@ -6,6 +6,8 @@ public enum Device {
     LAPTOP("laptop"),
     MACBOOK("macbook"),
     IPAD("ipad"),
+    /** Toughbook-style rugged laptop for the front passenger. */
+    RUGGED_LAPTOP("rugged_laptop"),
     CAR_DISPLAY("car_display");
 
     private final String id;
