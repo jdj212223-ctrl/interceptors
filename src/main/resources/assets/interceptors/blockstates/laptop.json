@@ -1,0 +1,20 @@
+{
+  "variants": {
+    "facing=north": {
+      "model": "interceptors:block/laptop",
+      "y": 0
+    },
+    "facing=east": {
+      "model": "interceptors:block/laptop",
+      "y": 90
+    },
+    "facing=south": {
+      "model": "interceptors:block/laptop",
+      "y": 180
+    },
+    "facing=west": {
+      "model": "interceptors:block/laptop",
+      "y": 270
+    }
+  }
+}

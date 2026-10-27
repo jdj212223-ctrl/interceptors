@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "IGI",
+    "IQI",
+    "IRI"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:glass_pane"
+    },
+    "Q": {
+      "item": "minecraft:quartz"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "result": {
+    "id": "interceptors:ipad",
+    "count": 1
+  }
+}

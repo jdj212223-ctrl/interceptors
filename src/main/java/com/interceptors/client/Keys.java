@@ -13,5 +13,8 @@ public final class Keys {
     public static final KeyMapping HORN = new KeyMapping("key.interceptors.horn", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_H, CATEGORY);
 
+    public static final KeyMapping DISPLAY = new KeyMapping("key.interceptors.display", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Y, CATEGORY);
+
     private Keys() {}
 }

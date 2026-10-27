@@ -1,6 +1,7 @@
 package com.interceptors.client;
 
 import com.interceptors.Interceptors;
+import com.interceptors.device.Device;
 import com.interceptors.network.VehicleActionPayload;
 import com.interceptors.vehicle.InterceptorVehicle;
 import net.minecraft.client.Minecraft;
@@ -20,5 +21,6 @@ public final class ClientEvents {
         boolean inVehicle = mc.player != null && mc.player.getVehicle() instanceof InterceptorVehicle;
         while (Keys.ANCHORS.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.ANCHORS));
         while (Keys.HORN.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.HORN));
+        while (Keys.DISPLAY.consumeClick()) if (inVehicle) Device.CAR_DISPLAY.open();
     }
 }

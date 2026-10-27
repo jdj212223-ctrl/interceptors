@@ -1,5 +1,6 @@
 package com.interceptors;
 
+import com.interceptors.registry.ModBlocks;
 import com.interceptors.registry.ModCreativeTabs;
 import com.interceptors.registry.ModEntities;
 import com.interceptors.registry.ModItems;
@@ -17,6 +18,7 @@ public class Interceptors {
     public static final Logger LOGGER = LogUtils.getLogger();
 
     public Interceptors(IEventBus modBus, ModContainer container) {
+        ModBlocks.BLOCKS.register(modBus);
         ModEntities.ENTITIES.register(modBus);
         ModItems.ITEMS.register(modBus);
         ModSounds.SOUNDS.register(modBus);

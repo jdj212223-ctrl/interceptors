@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    {
+      "item": "interceptors:laptop"
+    },
+    {
+      "item": "minecraft:apple"
+    },
+    {
+      "item": "minecraft:iron_ingot"
+    }
+  ],
+  "result": {
+    "id": "interceptors:macbook",
+    "count": 1
+  }
+}

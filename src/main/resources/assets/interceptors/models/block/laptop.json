@@ -1,0 +1,77 @@
+{
+  "parent": "minecraft:block/block",
+  "textures": {
+    "bezel": "interceptors:block/device_bezel",
+    "case": "interceptors:block/device_case",
+    "screen": "interceptors:block/device_screen",
+    "keys": "interceptors:block/laptop_keys",
+    "tower": "interceptors:block/pc_tower",
+    "particle": "interceptors:block/device_case"
+  },
+  "elements": [
+    {
+      "from": [
+        2,
+        0,
+        3
+      ],
+      "to": [
+        14,
+        1,
+        12
+      ],
+      "faces": {
+        "north": {
+          "texture": "#case"
+        },
+        "south": {
+          "texture": "#case"
+        },
+        "east": {
+          "texture": "#case"
+        },
+        "west": {
+          "texture": "#case"
+        },
+        "up": {
+          "texture": "#keys"
+        },
+        "down": {
+          "texture": "#case"
+        }
+      }
+    },
+    {
+      "from": [
+        2,
+        1,
+        12
+      ],
+      "to": [
+        14,
+        9,
+        13
+      ],
+      "faces": {
+        "north": {
+          "texture": "#screen"
+        },
+        "south": {
+          "texture": "#bezel"
+        },
+        "east": {
+          "texture": "#bezel"
+        },
+        "west": {
+          "texture": "#bezel"
+        },
+        "up": {
+          "texture": "#bezel"
+        },
+        "down": {
+          "texture": "#bezel"
+        }
+      }
+    }
+  ]
+}

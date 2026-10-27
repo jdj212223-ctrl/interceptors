@@ -39,14 +39,22 @@ public final class Storms {
     /**
      * One storm as seen from where you're standing.
      *
-     * @param bearing degrees clockwise from north to the storm
-     * @param heading degrees clockwise from north the storm is moving, NaN if it's still
-     * @param speed   storm motion in mph
+     * @param bearing  degrees clockwise from north to the storm
+     * @param heading  degrees clockwise from north the storm is moving, NaN if it's still
+     * @param speed    storm motion in mph
+     * @param velocity storm motion in blocks per tick
      */
     public record StormInfo(String type, boolean tornado, int windspeed, int ef, int stage, float width,
-                            double distance, double bearing, double heading, double speed, Vec3 position) {
+                            double distance, double bearing, double heading, double speed, Vec3 position, Vec3 velocity) {
         public String efLabel() {
             return ef < 0 ? "--" : "EF" + ef;
+        }
+
+        /** How fast it's coming at {@code from}, mph; negative when it's moving away. */
+        public double closingMph(Vec3 from) {
+            Vec3 toYou = new Vec3(from.x - position.x, 0, from.z - position.z);
+            if (toYou.lengthSqr() < 1e-6) return 0;
+            return WindPhysics.toMph(toYou.normalize().dot(new Vec3(velocity.x, 0, velocity.z)));
         }
     }
 
@@ -65,7 +73,7 @@ public final class Storms {
                 double motion = Math.sqrt(v.x * v.x + v.z * v.z);
                 out.add(new StormInfo(s.stormType == null ? "storm" : s.stormType.getId(), tornado, s.windspeed,
                         tornado ? WindPhysics.efRating(s.windspeed) : -1, s.stage, s.width, dist, compass(d.x, d.z),
-                        motion < 1e-4 ? Double.NaN : compass(v.x, v.z), WindPhysics.toMph(motion), s.position));
+                        motion < 1e-4 ? Double.NaN : compass(v.x, v.z), WindPhysics.toMph(motion), s.position, v));
             }
         } catch (Throwable ignored) {
             // A storm changing under us mid-read just means one stale frame.

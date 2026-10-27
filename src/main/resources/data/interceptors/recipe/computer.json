@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "GGG",
+    "GQG",
+    "IRI"
+  ],
+  "key": {
+    "G": {
+      "item": "minecraft:glass_pane"
+    },
+    "Q": {
+      "item": "minecraft:quartz"
+    },
+    "R": {
+      "item": "minecraft:redstone"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "result": {
+    "id": "interceptors:computer",
+    "count": 1
+  }
+}

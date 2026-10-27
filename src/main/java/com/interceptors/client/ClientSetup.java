@@ -1,11 +1,14 @@
 package com.interceptors.client;
 
 import com.interceptors.Interceptors;
+import com.interceptors.client.gui.DeviceScreen;
 import com.interceptors.client.gui.VehicleHud;
 import com.interceptors.client.render.VehicleRenderer;
 import com.interceptors.compat.Storms;
+import com.interceptors.device.Device;
 import com.interceptors.registry.ModEntities;
 import dev.protomanly.pmweather.event.GameBusClientEvents;
+import net.minecraft.client.Minecraft;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
@@ -21,6 +24,7 @@ public final class ClientSetup {
     @SubscribeEvent
     public static void setup(FMLClientSetupEvent e) {
         Storms.clientHandler = () -> GameBusClientEvents.weatherHandler;
+        Device.opener = device -> Minecraft.getInstance().setScreen(new DeviceScreen(device));
     }
 
     @SubscribeEvent
@@ -32,6 +36,7 @@ public final class ClientSetup {
     public static void keys(RegisterKeyMappingsEvent e) {
         e.register(Keys.ANCHORS);
         e.register(Keys.HORN);
+        e.register(Keys.DISPLAY);
     }
 
     @SubscribeEvent

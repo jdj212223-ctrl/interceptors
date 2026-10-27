@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "III",
+    "BMB",
+    "P P"
+  ],
+  "key": {
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "B": {
+      "item": "minecraft:black_concrete"
+    },
+    "M": {
+      "item": "minecraft:minecart"
+    },
+    "P": {
+      "item": "minecraft:lightning_rod"
+    }
+  },
+  "result": {
+    "id": "interceptors:dominator_1",
+    "count": 1
+  }
+}

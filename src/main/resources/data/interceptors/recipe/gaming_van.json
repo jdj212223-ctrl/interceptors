@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "WWW",
+    "WCW",
+    "IMI"
+  ],
+  "key": {
+    "W": {
+      "item": "minecraft:white_concrete"
+    },
+    "C": {
+      "item": "interceptors:computer"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "M": {
+      "item": "minecraft:minecart"
+    }
+  },
+  "result": {
+    "id": "interceptors:gaming_van",
+    "count": 1
+  }
+}

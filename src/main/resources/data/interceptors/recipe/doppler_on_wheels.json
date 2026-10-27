@@ -1,0 +1,30 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    " D ",
+    "WCW",
+    "IMI"
+  ],
+  "key": {
+    "D": {
+      "item": "minecraft:daylight_detector"
+    },
+    "W": {
+      "item": "minecraft:white_concrete"
+    },
+    "C": {
+      "item": "interceptors:computer"
+    },
+    "I": {
+      "item": "minecraft:iron_ingot"
+    },
+    "M": {
+      "item": "minecraft:minecart"
+    }
+  },
+  "result": {
+    "id": "interceptors:doppler_on_wheels",
+    "count": 1
+  }
+}

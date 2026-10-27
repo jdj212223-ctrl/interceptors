@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "OKO",
+    "K2K",
+    "PPP"
+  ],
+  "key": {
+    "O": {
+      "item": "minecraft:obsidian"
+    },
+    "K": {
+      "item": "minecraft:iron_block"
+    },
+    "2": {
+      "item": "interceptors:dominator_2"
+    },
+    "P": {
+      "item": "minecraft:lightning_rod"
+    }
+  },
+  "result": {
+    "id": "interceptors:dominator_3",
+    "count": 1
+  }
+}

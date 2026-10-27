@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "KKK",
+    "KMK",
+    "OPO"
+  ],
+  "key": {
+    "K": {
+      "item": "minecraft:iron_block"
+    },
+    "M": {
+      "item": "minecraft:minecart"
+    },
+    "O": {
+      "item": "minecraft:obsidian"
+    },
+    "P": {
+      "item": "minecraft:lightning_rod"
+    }
+  },
+  "result": {
+    "id": "interceptors:tiv_1",
+    "count": 1
+  }
+}

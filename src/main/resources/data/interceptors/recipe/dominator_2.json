@@ -1,0 +1,24 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "KKK",
+    "K1K",
+    "P P"
+  ],
+  "key": {
+    "K": {
+      "item": "minecraft:iron_block"
+    },
+    "1": {
+      "item": "interceptors:dominator_1"
+    },
+    "P": {
+      "item": "minecraft:lightning_rod"
+    }
+  },
+  "result": {
+    "id": "interceptors:dominator_2",
+    "count": 1
+  }
+}
