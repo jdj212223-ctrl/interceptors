@@ -1,24 +1,34 @@
 {
   "itemGroup.interceptors": "Interceptors",
-
   "entity.interceptors.gaming_van": "Gaming Camper Van",
   "item.interceptors.gaming_van": "Gaming Camper Van",
   "tooltip.interceptors.gaming_van": "White high-roof camper with a gaming PC in the back. Fast, comfy, not armored.",
+  "entity.interceptors.dominator_1": "Dominator 1 (Slide 1)",
+  "item.interceptors.dominator_1": "Dominator 1 (Slide 1)",
+  "tooltip.interceptors.dominator_1": "Reed Timmer's first armored Tahoe. Push bar, weather mast, ground spikes.",
+  "entity.interceptors.dominator_2": "Dominator 2",
+  "item.interceptors.dominator_2": "Dominator 2",
+  "tooltip.interceptors.dominator_2": "Longer armored Yukon XL. Hydraulic side skirts drop to the road with the anchors.",
+  "entity.interceptors.dominator_3": "Dominator 3 (Fail 3)",
+  "item.interceptors.dominator_3": "Dominator 3 (Fail 3)",
+  "tooltip.interceptors.dominator_3": "The big angular armored truck. Toughest of the Dominators: skirts plus three pairs of spikes.",
+  "entity.interceptors.tiv_1": "TIV 1",
+  "item.interceptors.tiv_1": "TIV 1",
+  "tooltip.interceptors.tiv_1": "The first Tornado Intercept Vehicle. Slow as a tank, built like one. Louvered armor glass.",
+  "entity.interceptors.doppler_on_wheels": "Doppler on Wheels",
+  "item.interceptors.doppler_on_wheels": "Doppler on Wheels",
+  "tooltip.interceptors.doppler_on_wheels": "A radar truck with a spinning dish. Light armor, but its screens see storms much farther away.",
   "tooltip.interceptors.vehicle.stats": "Armor %s  |  Grip %s mph  |  Anchored %s mph  |  Rated %s mph",
-
   "key.categories.interceptors": "Interceptors",
   "key.interceptors.anchors": "Anchors down / up",
   "key.interceptors.horn": "Horn",
-
   "message.interceptors.stop_first": "Stop the vehicle before dropping the anchors!",
-
   "hud.interceptors.anchored": "ANCHORS DOWN",
   "hud.interceptors.not_anchored": "Anchors up  (G to drop)",
   "hud.interceptors.wind": "Wind here: %s mph%s",
   "hud.interceptors.no_tornado": "No tornado on the ground",
   "hud.interceptors.tornado": "%s TORNADO %s mph  %s m %s",
   "hud.interceptors.motion": "Moving %s  |  %s m wide",
-
   "subtitles.interceptors.horn": "Horn honks",
   "subtitles.interceptors.anchor_down": "Anchors deploy",
   "subtitles.interceptors.anchor_up": "Anchors retract"

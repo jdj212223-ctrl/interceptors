@@ -9,7 +9,12 @@ Needs **PMWeather 0.17.13 or newer**. Works next to the Tornado Intercept addon.
 
 | Vehicle | Armor | Slides at | Anchored holds | Body rated | Notes |
 |---|---|---|---|---|---|
-| Gaming Camper Van | 60 | 75 mph | 115 mph | 100 mph | Frantic Dan-style white high-roof camper. Fast, a gaming PC in the back, leveling jacks for anchors. |
+| Gaming Camper Van | 60 | 75 mph | 115 mph | 100 mph | Frantic Dan-style white high-roof camper. Fastest, RGB gaming lights, leveling jacks. |
+| Dominator 1 (Slide 1) | 120 | 95 mph | 160 mph | 150 mph | Reed Timmer's armored Tahoe. Push bar, weather mast, ground spikes. |
+| Dominator 2 | 160 | 110 mph | 185 mph | 175 mph | Longer armored Yukon XL. Side skirts drop to the road with the anchors. |
+| Dominator 3 (Fail 3) | 220 | 130 mph | 230 mph | 220 mph | The big angular armored truck: skirts plus three pairs of spikes. |
+| TIV 1 | 200 | 120 mph | 200 mph | 200 mph | The first Tornado Intercept Vehicle. Slowest, louvered armor glass, 2 seats. |
+| Doppler on Wheels | 90 | 85 mph | 130 mph | 115 mph | Radar truck with a spinning dish. 2 seats. |
 
 - **Slides at**: wind the tires can handle. Above it the vehicle gets pushed, and at about 1.5x it starts to lift off.
 - **Anchored holds**: the same with the anchors down.
@@ -19,7 +24,7 @@ Needs **PMWeather 0.17.13 or newer**. Works next to the Tornado Intercept addon.
 
 | Key | Does |
 |---|---|
-| Right-click vehicle | Get in (up to 4 seats; the first one in drives) |
+| Right-click vehicle | Get in (2 or 4 seats; the first one in drives) |
 | W / S | Gas / brake and reverse |
 | A / D | Steer |
 | Shift | Get out |

@@ -1,6 +1,7 @@
 package com.interceptors.test;
 
 import com.interceptors.Interceptors;
+import com.interceptors.client.render.VehicleModels;
 import com.interceptors.compat.Storms;
 import com.interceptors.registry.ModEntities;
 import com.interceptors.vehicle.InterceptorVehicle;
@@ -134,6 +135,29 @@ public class InterceptorsGameTests {
         helper.assertTrue(copy.isAnchored() && copy.getDamage() == 17, "lost state: anchored " + copy.isAnchored() + " damage " + copy.getDamage());
         helper.succeed();
     }
+
+    /** Every vehicle has a model, and nothing solid sits where any seated rider's eyes are. */
+    @GameTest(template = "pad")
+    public static void everyoneCanSeeOutOfTheCab(GameTestHelper helper) {
+        for (VehicleSpec spec : VehicleSpec.ALL) {
+            helper.assertTrue(VehicleModels.has(spec.id()), spec.id() + " has no model");
+            // Only the front seats need a view; rear passengers ride in the back like cargo.
+            for (Vec3 seat : spec.seats().subList(0, 2)) {
+                Vec3 eye = seat.add(0, EYE_ABOVE_SEAT, 0);
+                for (VehicleModels.Box b : VehicleModels.get(spec.id())) {
+                    if ((b.flags() & (VehicleModels.CLEAR | VehicleModels.ANCHOR)) != 0) continue;
+                    double r = 0.12;
+                    boolean inside = eye.x > b.x0() - r && eye.x < b.x1() + r && eye.y > b.y0() - r && eye.y < b.y1() + r
+                            && eye.z > b.z0() - r && eye.z < b.z1() + r;
+                    helper.assertTrue(!inside, spec.id() + ": rider's eyes at " + eye + " are inside " + b);
+                }
+            }
+        }
+        helper.succeed();
+    }
+
+    /** Seat height to eye height: a player rides 0.6 below the seat point and their eyes are 1.62 above their feet. */
+    private static final double EYE_ABOVE_SEAT = 1.62 - 0.6;
 
     @GameTest(template = "pad")
     public static void readsRealPMWeather(GameTestHelper helper) {
