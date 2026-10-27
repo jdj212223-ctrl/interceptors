@@ -115,7 +115,7 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
      */
     private void dashboard(InterceptorVehicle v, PoseStack pose, MultiBufferSource buffers) {
         Vec3 seat = v.spec().seats().get(0);
-        float z = (float) (seat.z + VehicleModels.DASH_AHEAD) - 0.004f, top = (float) (seat.y + VehicleModels.DASH_TOP);
+        float z = (float) (seat.z + VehicleModels.DASH_AHEAD) - 0.034f, top = (float) (seat.y + VehicleModels.DASH_TOP);
         float halfWidth = (float) VehicleModels.DASH_HALF_WIDTH, height = (float) (VehicleModels.DASH_TOP - VehicleModels.DASH_BOTTOM);
         VertexConsumer vc = buffers.getBuffer(RenderType.entityCutoutNoCull(Mat.PLAIN.texture));
         Face face = new Face(pose.last(), vc, 8, 14, 22, FULL_BRIGHT);

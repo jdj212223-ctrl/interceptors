@@ -260,6 +260,27 @@ public class InterceptorsGameTests {
         helper.succeed();
     }
 
+    /**
+     * Nothing solid cuts through a seated rider, in any seat of any vehicle: the space from their hips up past the
+     * top of their head is clear of walls, roofs, floors and furniture (their own seat cushion aside).
+     */
+    @GameTest(template = "pad")
+    public static void seatedRidersFitInsideEveryVehicle(GameTestHelper helper) {
+        for (VehicleSpec spec : VehicleSpec.ALL) {
+            for (int i = 0; i < spec.seats().size(); i++) {
+                Vec3 seat = spec.seats().get(i);
+                // A sitting player: hips about 0.15 above the seat point, head top 1.2 above it.
+                double x0 = seat.x - 0.2, x1 = seat.x + 0.2, y0 = seat.y + 0.2, y1 = seat.y + 1.2, z0 = seat.z - 0.2, z1 = seat.z + 0.15;
+                for (VehicleModels.Box b : VehicleModels.furnished(spec)) {
+                    if ((b.flags() & (VehicleModels.CLEAR | VehicleModels.ANCHOR)) != 0 || b.mat() == com.interceptors.client.render.Mat.FABRIC) continue;
+                    boolean hit = x0 < b.x1() && x1 > b.x0() && y0 < b.y1() && y1 > b.y0() && z0 < b.z1() && z1 > b.z0();
+                    helper.assertTrue(!hit, spec.id() + " seat " + i + " " + seat + " cuts through " + b);
+                }
+            }
+        }
+        helper.succeed();
+    }
+
     /** Seat height to eye height: a player rides 0.6 below the seat point and their eyes are 1.62 above their feet. */
     private static final double EYE_ABOVE_SEAT = 1.62 - 0.6;
 

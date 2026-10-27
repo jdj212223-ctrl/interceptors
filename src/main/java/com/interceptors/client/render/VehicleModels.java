@@ -90,27 +90,29 @@ public final class VehicleModels {
             Builder b = new Builder();
             for (net.minecraft.world.phys.Vec3 seat : spec.seats()) {
                 boolean hasSeat = all.stream().anyMatch(x -> x.mat() == Mat.FABRIC && seat.x > x.x0() && seat.x < x.x1()
-                        && seat.z > x.z0() && seat.z < x.z1() && seat.y - 0.1 > x.y0() - 0.2 && seat.y - 0.1 < x.y1() + 0.1);
+                        && seat.z > x.z0() && seat.z < x.z1() && seat.y > x.y0() && seat.y < x.y1() + 0.3);
                 if (hasSeat) continue;
+                // A seated rider's hips are about 0.15 above their seat point, so the cushion top goes there.
                 double sx = seat.x, sy = seat.y, sz = seat.z;
                 b.in(Mat.FABRIC, f -> f
-                        .box(sx - 0.24, sy - 0.22, sz - 0.3, sx + 0.24, sy + 0.04, sz + 0.2, 0x4A4E54)
-                        .box(sx - 0.24, sy + 0.04, sz - 0.4, sx + 0.24, sy + 0.78, sz - 0.3, 0x4A4E54)
-                        .box(sx - 0.15, sy + 0.78, sz - 0.39, sx + 0.15, sy + 0.92, sz - 0.31, 0x3A3E44));
+                        .box(sx - 0.24, sy - 0.2, sz - 0.3, sx + 0.24, sy + 0.13, sz + 0.2, 0x4A4E54)
+                        .box(sx - 0.24, sy + 0.13, sz - 0.42, sx + 0.24, sy + 0.85, sz - 0.3, 0x4A4E54)
+                        .box(sx - 0.15, sy + 0.85, sz - 0.41, sx + 0.15, sy + 1.0, sz - 0.31, 0x3A3E44));
             }
             net.minecraft.world.phys.Vec3 driver = spec.seats().get(0);
             double dz = driver.z + DASH_AHEAD, dy = driver.y;
-            b.in(Mat.PLASTIC, f -> f.box(-DASH_HALF_WIDTH - 0.03, dy + DASH_BOTTOM - 0.03, dz, DASH_HALF_WIDTH + 0.03, dy + DASH_TOP + 0.03, dz + 0.06, NEUTRAL));
+            // Screen bezel standing on the dashboard, its face toward the driver.
+            b.in(Mat.PLASTIC, f -> f.box(-DASH_HALF_WIDTH - 0.03, dy + DASH_BOTTOM - 0.02, dz - 0.03, DASH_HALF_WIDTH + 0.03, dy + DASH_TOP + 0.03, dz, NEUTRAL));
             if (spec.seats().size() > 1) {
-                double lx = spec.seats().get(1).x, lz = dz - 0.05;
+                double lx = spec.seats().get(1).x, lz = dz - 0.08;
                 // Toughbook-style rugged laptop on a pole mount: thick grey case, rubber corners, glowing screen.
-                b.in(Mat.STEEL, f -> f.box(lx - 0.02, dy + 0.2, lz + 0.05, lx + 0.02, dy + 0.56, lz + 0.09, STEEL_TINT))
+                b.in(Mat.STEEL, f -> f.box(lx - 0.02, dy - 0.2, lz - 0.02, lx + 0.02, dy + 0.35, lz + 0.02, STEEL_TINT))
                         .in(Mat.PLASTIC, f -> f
-                                .box(lx - 0.19, dy + 0.56, lz - 0.14, lx + 0.19, dy + 0.6, lz + 0.1, 0xA8ACB0)
-                                .box(lx - 0.19, dy + 0.6, lz + 0.06, lx + 0.19, dy + 0.84, lz + 0.1, 0xA8ACB0)
-                                .box(lx - 0.21, dy + 0.56, lz + 0.04, lx - 0.17, dy + 0.86, lz + 0.11, 0x303030)
-                                .box(lx + 0.17, dy + 0.56, lz + 0.04, lx + 0.21, dy + 0.86, lz + 0.11, 0x303030))
-                        .in(Mat.SCREEN, f -> f.box(lx - 0.16, dy + 0.62, lz + 0.055, lx + 0.16, dy + 0.82, lz + 0.06, NEUTRAL, GLOW));
+                                .box(lx - 0.19, dy + 0.35, lz - 0.14, lx + 0.19, dy + 0.39, lz + 0.06, 0xA8ACB0)
+                                .box(lx - 0.19, dy + 0.39, lz + 0.02, lx + 0.19, dy + 0.62, lz + 0.06, 0xA8ACB0)
+                                .box(lx - 0.21, dy + 0.35, lz, lx - 0.17, dy + 0.64, lz + 0.07, 0x303030)
+                                .box(lx + 0.17, dy + 0.35, lz, lx + 0.21, dy + 0.64, lz + 0.07, 0x303030))
+                        .in(Mat.SCREEN, f -> f.box(lx - 0.16, dy + 0.42, lz + 0.015, lx + 0.16, dy + 0.6, lz + 0.02, NEUTRAL, GLOW));
             }
             all.addAll(b.build().boxes());
             return List.copyOf(all);
@@ -118,7 +120,7 @@ public final class VehicleModels {
     }
 
     /** Where the driver's dash screen sits, relative to the driver's seat: ahead, and how high its face runs. */
-    public static final double DASH_AHEAD = 0.45, DASH_BOTTOM = 0.66, DASH_TOP = 0.9, DASH_HALF_WIDTH = 0.3;
+    public static final double DASH_AHEAD = 0.45, DASH_BOTTOM = 0.37, DASH_TOP = 0.64, DASH_HALF_WIDTH = 0.3;
 
     /** Collects boxes in the current material; {@code pair} adds a box and its mirror across x=0. */
     private static final class Builder {
@@ -179,6 +181,25 @@ public final class VehicleModels {
                     .box(-hw + 0.06, y0, zf - 0.08, hw - 0.06, y1, zf, NEUTRAL, CLEAR));
         }
 
+        /**
+         * The lower body around the cabin, hollow so riders sit inside it: a floor slab from {@code y0} up to
+         * {@code floor}, door panels up to the window line {@code belt}, a back panel, and a solid dashboard from
+         * {@code dashZ} forward to the windshield {@code zf}. Half-width {@code hw}, from {@code zb} to {@code zf}.
+         */
+        Builder tub(double hw, double y0, double floor, double belt, double zb, double zf, double dashZ, int body) {
+            box(-hw, y0, zb, hw, floor, zf, body);
+            pair(hw - 0.07, floor, zb, hw, belt, zf, body);
+            box(-hw, floor, zb, hw, belt, zb + 0.07, body);
+            return box(-hw, floor, dashZ, hw, belt, zf, body);
+        }
+
+        /** An enclosed rear compartment above the window line: side walls, back wall and roof, open to the cab. */
+        Builder room(double hw, double belt, double top, double zb, double zf, int body) {
+            pair(hw - 0.07, belt, zb, hw, top, zf, body);
+            box(-hw, belt, zb, hw, top, zb + 0.07, body);
+            return box(-hw, top - 0.12, zb, hw, top, zf, body);
+        }
+
         /** Opaque tinted glass (from outside you can't see in). */
         Builder window(double x0, double y0, double z0, double x1, double y1, double z1) {
             return in(Mat.GLASS, b -> b.box(x0, y0, z0, x1, y1, z1, NEUTRAL));
@@ -227,53 +248,56 @@ public final class VehicleModels {
     }
 
     /**
-     * Frantic Dan-style clean white high-roof camper van. The camper box is hollow so you can see the conversion from
-     * the back seats: wood paneling, gaming desk with a big monitor and RGB tower, sofa bed, kitchenette and fridge.
+     * Frantic Dan-style clean white high-roof camper van. Hollow inside so you can see the conversion: wood
+     * paneling, gaming desk with a big monitor and RGB tower, sofa bed across the back, kitchenette and fridge.
+     * Floor at 0.6, window line at 1.15.
      */
     private static Model gamingVan() {
+        int cushion = 0x5068A0, deskWood = 0x8A6A50;
         return new Builder()
-                .box(-1.05, 0.45, -2.6, 1.05, 1.15, 1.75, WHITE)
+                .tub(1.05, 0.45, 0.6, 1.15, -2.6, 1.75, 1.45, WHITE)
                 .wedge(-1.0, 0.45, 1.75, 1.0, 1.1, 2.7, WHITE, 0.12, 0, 0.03, 0.22)
-                // camper box: thin walls, roof and back door, so the inside is a room
+                // camper box: walls, roof and back door around a room
                 .pair(1.0, 1.15, -2.6, 1.05, 2.6, 0.3, WHITE)
                 .box(-1.05, 2.55, -2.6, 1.05, 2.6, 0.3, WHITE)
                 .box(-1.05, 1.15, -2.6, 1.05, 2.55, -2.55, WHITE)
                 .cab(1.0, 1.15, 2.15, 0.3, 1.75, WHITE)
                 .wedge(-1.0, 2.27, 0.3, 1.0, 2.6, 1.35, WHITE, 0.35, 0, 0.04, 0)
-                // inside: vinyl floor, wood walls and ceiling, sofa bed across the back
-                .in(Mat.VINYL, b -> b.box(-1.0, 1.15, -2.55, 1.0, 1.17, 0.3, NEUTRAL))
+                // inside: vinyl floor, wood walls and ceiling
+                .in(Mat.VINYL, b -> b.box(-1.0, 0.6, -2.55, 1.0, 0.62, 1.45, NEUTRAL))
                 .in(Mat.WOOD, b -> b
-                        .pair(0.97, 1.17, -2.55, 1.0, 2.52, 0.3, NEUTRAL)
+                        .pair(0.97, 0.62, -2.55, 1.0, 2.52, 0.3, NEUTRAL)
                         .box(-1.0, 2.52, -2.55, 1.0, 2.55, 0.3, NEUTRAL)
-                        .box(-1.0, 1.17, -2.55, 1.0, 2.52, -2.52, NEUTRAL)
-                        // gaming desk and its legs, kitchenette counter and overhead cabinets
-                        .box(-0.97, 1.72, -1.65, -0.45, 1.77, -0.45, 0x8A6A50)
-                        .box(-0.95, 1.17, -1.6, -0.9, 1.72, -1.55, 0x8A6A50)
-                        .box(-0.95, 1.17, -0.55, -0.9, 1.72, -0.5, 0x8A6A50)
-                        .box(0.6, 1.17, -1.8, 0.97, 1.7, -0.95, NEUTRAL)
+                        .box(-1.0, 0.62, -2.55, 1.0, 2.52, -2.52, NEUTRAL)
+                        // gaming desk on the passenger wall, kitchenette counter and cabinets on the driver's wall
+                        .box(-0.97, 1.3, -1.65, -0.45, 1.35, -0.45, deskWood)
+                        .box(-0.95, 0.62, -1.6, -0.9, 1.3, -1.55, deskWood)
+                        .box(-0.95, 0.62, -0.55, -0.9, 1.3, -0.5, deskWood)
+                        .box(0.6, 0.62, -1.35, 0.97, 1.3, -0.95, NEUTRAL)
                         .box(0.6, 2.2, -1.8, 0.97, 2.5, -0.45, NEUTRAL))
+                // sofa bed across the back (the rear seats), gaming chair at the desk
                 .in(Mat.FABRIC, b -> b
-                        .box(-0.95, 1.17, -2.5, 0.95, 1.45, -1.85, 0x5068A0)
-                        .box(-0.95, 1.45, -2.52, 0.95, 1.95, -2.32, 0x5068A0)
-                        .box(-0.55, 1.17, -1.2, -0.3, 1.5, -0.9, 0x404040))
+                        .box(-0.95, 0.62, -2.5, 0.95, 0.95, -1.85, cushion)
+                        .box(-0.95, 0.95, -2.52, 0.95, 1.55, -2.32, cushion)
+                        .box(-0.62, 0.62, -1.25, -0.32, 0.95, -0.9, 0x404040)
+                        .box(-0.62, 0.95, -0.92, -0.32, 1.45, -0.85, 0x404040))
                 // big monitor, RGB tower, headphones, mic arm, sink, mini fridge
                 .in(Mat.PLASTIC, b -> b
-                        .box(-0.97, 1.85, -1.55, -0.92, 2.35, -0.55, NEUTRAL)
-                        .box(-0.96, 1.17, -0.42, -0.66, 1.68, -0.12, NEUTRAL)
-                        .box(-0.85, 1.77, -0.7, -0.7, 1.8, -0.6, NEUTRAL))
-                .in(Mat.SCREEN, b -> b.box(-0.92, 1.88, -1.52, -0.91, 2.32, -0.58, NEUTRAL, GLOW))
-                .in(Mat.PLAIN, b -> b.box(-0.66, 1.2, -0.4, -0.65, 1.65, -0.38, 0xFF3080, GLOW | RGB))
+                        .box(-0.97, 1.42, -1.55, -0.92, 1.92, -0.55, NEUTRAL)
+                        .box(-0.96, 0.62, -0.42, -0.66, 1.13, -0.12, NEUTRAL)
+                        .box(-0.85, 1.35, -0.7, -0.7, 1.38, -0.6, NEUTRAL))
+                .in(Mat.SCREEN, b -> b.box(-0.92, 1.45, -1.52, -0.91, 1.89, -0.58, NEUTRAL, GLOW))
+                .in(Mat.PLAIN, b -> b.box(-0.66, 0.65, -0.4, -0.65, 1.1, -0.38, 0xFF3080, GLOW | RGB))
                 .in(Mat.STEEL, b -> b
-                        .box(-0.95, 1.77, -1.62, -0.93, 2.05, -1.6, STEEL_TINT)
-                        .box(0.65, 1.7, -1.6, 0.85, 1.72, -1.3, STEEL_TINT)
-                        .box(0.59, 1.75, -0.85, 0.6, 1.8, -0.5, STEEL_TINT)
+                        .box(-0.95, 1.35, -1.62, -0.93, 1.63, -1.6, STEEL_TINT)
+                        .box(0.65, 1.3, -1.3, 0.85, 1.32, -1.0, STEEL_TINT)
+                        .box(0.59, 1.25, -0.85, 0.6, 1.3, -0.5, STEEL_TINT)
                         // sliding door rail on the passenger side
                         .box(-1.05, 0.55, -0.1, -1.07, 2.1, -0.06, STEEL_TINT))
-                .box(0.6, 1.17, -0.9, 0.97, 1.85, -0.45, 0xE6E9EC)
+                .box(0.6, 0.62, -0.9, 0.97, 1.4, -0.45, 0xE6E9EC)
                 // outside: camper windows, rear door windows
                 .windows(1.05, 1.75, -2.0, 1.08, 2.25, -0.55)
                 .windows(0.08, 1.7, -2.63, 0.8, 2.25, -2.6)
-                // bumpers, grille, lights, mirrors
                 .in(Mat.PLASTIC, b -> b
                         .box(-1.08, 0.3, 2.7, 1.08, 0.6, 2.88, NEUTRAL)
                         .box(-1.08, 0.3, -2.76, 1.08, 0.6, -2.6, NEUTRAL)
@@ -300,138 +324,144 @@ public final class VehicleModels {
                 .build();
     }
 
-    /** Dominator 1 ("Slide 1"): armored matte black Tahoe, red stripe, push bar, weather mast. */
+    /** Dominator 1 ("Slide 1"): armored matte black Tahoe, red stripe, push bar, weather mast. Window line 1.3. */
     private static Model dominator1() {
         int body = BLACK_ARMOR;
         return new Builder()
                 .mat(Mat.ARMOR)
-                .box(-1.0, 0.55, -2.45, 1.0, 1.3, 1.2, body)
+                .tub(1.0, 0.55, 0.75, 1.3, -2.45, 1.2, 0.95, body)
                 .wedge(-0.97, 0.55, 1.2, 0.97, 1.28, 2.45, body, 0.1, 0, 0.03, 0.12)
-                .box(-1.0, 1.3, -2.45, 1.0, 2.12, -0.2, body)
-                .cab(1.0, 1.3, 2.0, -0.2, 1.2, body)
-                // armor cage over the glass, push bar
+                .room(1.0, 1.3, 2.37, -2.45, -0.2, body)
+                .cab(1.0, 1.3, 2.25, -0.2, 1.2, body)
+                .windows(1.0, 1.75, -2.0, 1.03, 2.0, -0.6)
+                // armor cage over the glass, push bar, anemometer mast
                 .in(Mat.STEEL, b -> b
-                        .pair(1.0, 1.62, -0.1, 1.05, 1.67, 1.1, 0x909498)
-                        .box(-0.94, 1.62, 1.2, 0.94, 1.67, 1.25, 0x909498)
-                        .pair(1.0, 1.3, 0.45, 1.05, 2.0, 0.52, 0x909498)
+                        .pair(1.0, 1.75, -0.1, 1.05, 1.8, 1.1, 0x909498)
+                        .box(-0.94, 1.75, 1.2, 0.94, 1.8, 1.25, 0x909498)
+                        .pair(1.0, 1.3, 0.75, 1.05, 2.25, 0.82, 0x909498)
                         .box(-1.05, 0.3, 2.45, 1.05, 0.9, 2.75, 0x909498)
-                        .box(-0.04, 2.12, -1.6, 0.04, 2.9, -1.52, STEEL_TINT)
-                        .box(-0.28, 2.9, -1.68, 0.28, 2.95, -1.44, STEEL_TINT))
+                        .box(-0.04, 2.37, -1.6, 0.04, 3.15, -1.52, STEEL_TINT)
+                        .box(-0.28, 3.15, -1.68, 0.28, 3.2, -1.44, STEEL_TINT))
                 .in(Mat.PAINT, b -> b.pair(1.0, 1.0, -2.45, 1.03, 1.1, 2.45, RED))
                 .in(Mat.PLASTIC, b -> b.box(-1.0, 0.4, -2.6, 1.0, 0.7, -2.45, NEUTRAL))
                 .in(Mat.GRILLE, b -> b.box(-0.6, 0.8, 2.45, 0.6, 1.2, 2.47, NEUTRAL))
                 .lights(0.97, 0.9, 2.45, -2.45)
-                .lightbar(0.7, 2.12, 0.8, 1.0)
+                .lightbar(0.7, 2.37, 0.8, 1.0)
                 .wheels(1.0, 0.42, 1.65, -1.6)
                 .spike(0.55, 1.0, 0.55).spike(0.55, -1.9, 0.55)
-                .decal("DOMINATOR", 0xE8E8E8, 1.03, 1.95, -1.3, 0.024)
+                .decal("DOMINATOR", 0xE8E8E8, 1.03, 2.2, -1.3, 0.024)
                 .build();
     }
 
-    /** Dominator 2: longer gunmetal Yukon XL with orange stripes and hydraulic side skirts. */
+    /** Dominator 2: longer gunmetal Yukon XL with orange stripes and hydraulic side skirts. Window line 1.35. */
     private static Model dominator2() {
         int body = 0xBCC6D0, orange = 0xFF6A13;
         return new Builder()
                 .mat(Mat.ARMOR)
-                .box(-1.05, 0.55, -2.75, 1.05, 1.35, 1.3, body)
+                .tub(1.05, 0.55, 0.8, 1.35, -2.75, 1.3, 1.05, body)
                 .wedge(-1.0, 0.55, 1.3, 1.0, 1.32, 2.5, body, 0.15, 0, 0.04, 0.15)
-                .wedge(-1.05, 1.35, -2.75, 1.05, 2.17, -0.1, body, 0, 0.25, 0.1, 0)
-                .cab(1.05, 1.35, 2.05, -0.1, 1.3, body)
+                .room(1.05, 1.35, 2.42, -2.75, -0.1, body)
+                .wedge(-1.05, 2.3, -2.75, 1.05, 2.48, -0.1, body, 0, 0.25, 0.1, 0)
+                .cab(1.05, 1.35, 2.3, -0.1, 1.3, body)
+                .windows(1.05, 1.8, -2.3, 1.08, 2.05, -0.5)
                 .in(Mat.PAINT, b -> b
                         .pair(1.05, 1.1, -2.75, 1.08, 1.22, 2.5, orange)
-                        .pair(1.05, 1.8, -2.6, 1.08, 1.9, -0.3, orange))
+                        .pair(1.05, 2.1, -2.6, 1.08, 2.2, -0.3, orange))
                 .in(Mat.STEEL, b -> b
-                        .pair(1.05, 1.66, 0.0, 1.1, 1.7, 1.2, 0x909498)
+                        .pair(1.05, 1.75, 0.0, 1.1, 1.8, 1.2, 0x909498)
                         .box(-1.08, 0.3, 2.5, 1.08, 0.95, 2.8, 0x909498)
-                        .box(-0.5, 2.17, -2.2, 0.5, 2.35, -1.2, STEEL_TINT)
-                        .box(-0.04, 2.35, -1.75, 0.04, 3.0, -1.67, STEEL_TINT)
+                        .box(-0.5, 2.48, -2.2, 0.5, 2.66, -1.2, STEEL_TINT)
+                        .box(-0.04, 2.66, -1.75, 0.04, 3.3, -1.67, STEEL_TINT)
                         .pair(1.06, 0.15, -2.6, 1.12, 1.0, 2.35, 0xB0B4B8, SKIRT))
                 .in(Mat.PLASTIC, b -> b.box(-1.05, 0.4, -2.9, 1.05, 0.72, -2.75, NEUTRAL))
                 .in(Mat.GRILLE, b -> b.box(-0.6, 0.8, 2.5, 0.6, 1.2, 2.52, NEUTRAL))
                 .lights(1.0, 0.92, 2.5, -2.75)
-                .lightbar(0.75, 2.17, 0.9, 1.12)
+                .lightbar(0.75, 2.42, 0.9, 1.12)
                 .wheels(1.02, 0.45, 1.75, -1.85)
                 .spike(0.55, 1.1, 0.55).spike(0.55, -2.2, 0.55)
-                .decal("DOMINATOR 2", 0xFF8A3A, 1.09, 2.08, -1.4, 0.022)
+                .decal("DOMINATOR 2", 0xFF8A3A, 1.09, 1.75, -1.4, 0.022)
                 .build();
     }
 
     /**
      * Dominator 3 ("Fail 3"): low, wide, faceted matte black shell on an F-350 chassis (fans say it looks like
-     * Darth Vader's helmet), narrow Lexan window slits, armored bed, hydraulic skirts, roof anemometer mast.
+     * Darth Vader's helmet), narrow Lexan window slits, armored crew bed, hydraulic skirts, roof anemometer mast,
+     * four anchor spikes. Seats five. Hull top 1.25, slits 1.75 to 2.12.
      */
     private static Model dominator3() {
         int body = 0xB4B4B4;
         return new Builder()
                 .mat(Mat.ARMOR)
-                // lower hull and the faceted sloping nose
-                .wedge(-1.15, 0.6, -3.0, 1.15, 1.5, 2.0, body, 0, 0, 0.05, 0)
+                .tub(1.15, 0.6, 0.7, 1.25, -3.0, 2.0, 0.95, body)
                 .wedge(-1.1, 0.6, 2.0, 1.1, 1.5, 3.05, body, 0.5, 0, 0.15, 0.45)
-                // armor band under the slits, the slits themselves, and the helmet over the cab
-                .pair(1.0, 1.5, -0.4, 1.1, 1.62, 1.55, body)
-                .box(-1.1, 1.5, 1.45, 1.1, 1.62, 1.55, body)
-                .wedge(-1.1, 1.5, 1.55, 1.1, 1.62, 2.0, body, 0.3, 0, 0.1, 0.1)
-                .cab(1.05, 1.62, 1.92, -0.4, 1.55, body)
-                .wedge(-1.1, 2.04, -0.6, 1.1, 2.45, 1.6, body, 0.55, 0.1, 0.3, 0.12)
-                // faceted armored bed behind the cab
-                .wedge(-1.15, 1.5, -3.0, 1.15, 2.3, -0.4, body, 0, 0.35, 0.25, 0)
+                // armor under the slits, the slits, the helmet over the cab
+                .pair(1.0, 1.25, -0.4, 1.1, 1.75, 1.55, body)
+                .box(-1.1, 1.25, 1.45, 1.1, 1.75, 1.55, body)
+                .wedge(-1.1, 1.25, 1.55, 1.1, 1.75, 2.0, body, 0.3, 0, 0.1, 0.1)
+                .cab(1.05, 1.75, 2.12, -0.4, 1.55, body)
+                .wedge(-1.1, 2.24, -0.6, 1.1, 2.62, 1.6, body, 0.55, 0.1, 0.3, 0.12)
+                // armored crew area behind the cab, faceted roof, small rear window slits
+                .room(1.15, 1.25, 2.3, -3.0, -0.4, body)
+                .wedge(-1.15, 2.18, -3.0, 1.15, 2.45, -0.4, body, 0, 0.35, 0.25, 0)
+                .windows(1.15, 1.8, -2.4, 1.17, 2.05, -1.2)
                 // silver chevrons, red accent stripe
                 .in(Mat.STEEL, b -> b
                         .pair(1.15, 1.3, -2.8, 1.18, 1.38, -0.6, 0xE0E4E8)
                         .box(-1.12, 0.3, 2.9, 1.12, 0.9, 3.2, 0x909498)
-                        .box(-0.04, 2.45, -0.2, 0.04, 3.2, -0.12, STEEL_TINT)
-                        .box(-0.3, 3.2, -0.3, 0.3, 3.25, -0.02, STEEL_TINT)
+                        .box(-0.04, 2.62, -0.2, 0.04, 3.35, -0.12, STEEL_TINT)
+                        .box(-0.3, 3.35, -0.3, 0.3, 3.4, -0.02, STEEL_TINT)
                         .pair(1.16, 0.15, -2.9, 1.22, 1.05, 2.8, 0xB0B4B8, SKIRT))
-                .in(Mat.PAINT, b -> b.pair(1.1, 1.1, -3.0, 1.13, 1.2, 2.0, RED))
+                .in(Mat.PAINT, b -> b.pair(1.15, 1.1, -3.0, 1.18, 1.2, 2.0, RED))
                 .in(Mat.PLASTIC, b -> b.box(-1.1, 0.4, -3.15, 1.1, 0.75, -3.0, NEUTRAL))
                 .in(Mat.GRILLE, b -> b.box(-0.55, 0.7, 3.0, 0.55, 1.0, 3.03, NEUTRAL))
                 .lights(1.0, 0.75, 3.0, -3.0)
-                .lightbar(0.55, 2.33, 0.85, 1.02)
+                .lightbar(0.55, 2.5, 0.85, 1.02)
                 .wheels(1.08, 0.5, 2.0, -2.1)
                 // four anchor points, like the overlay: front corner, behind the front wheel, ahead of the rear wheel, rear corner
                 .spike(0.6, 2.75, 0.6).spike(0.6, 1.35, 0.6).spike(0.6, -1.45, 0.6).spike(0.6, -2.85, 0.6)
-                .decal("DOMINATOR 3", 0xE8E8E8, 1.1, 1.08, -1.7, 0.022)
+                .decal("DOMINATOR 3", 0xE8E8E8, 1.15, 1.08, -1.7, 0.022)
                 .build();
     }
 
-    /** TIV 1: slab-sided armored truck in dark olive, dented and rusty, louvered glass, camera pod. */
+    /** TIV 1: slab-sided armored truck in dark olive, dented and rusty, louvered glass, camera pod. Window line 1.5. */
     private static Model tiv1() {
         int body = 0xC8CCA8;
         Builder b = new Builder()
                 .mat(Mat.ARMOR_DENTED)
-                .box(-1.15, 0.65, -3.0, 1.15, 1.5, 1.4, body)
+                .tub(1.15, 0.65, 0.95, 1.5, -3.0, 1.4, 0.85, body)
                 .wedge(-1.1, 0.65, 1.4, 1.1, 1.55, 2.95, body, 0.55, 0, 0.05, 0.35)
-                .wedge(-1.15, 1.5, -3.0, 1.15, 2.47, -0.6, body, 0, 0.25, 0.12, 0)
-                .cab(1.15, 1.5, 2.35, -0.6, 1.4, body)
-                .box(-1.15, 2.35, 1.3, 1.15, 2.47, 1.9, body)
+                .room(1.15, 1.5, 2.57, -3.0, -0.6, body)
+                .wedge(-1.15, 2.45, -3.0, 1.15, 2.57, -0.6, body, 0, 0.25, 0.12, 0)
+                .cab(1.15, 1.5, 2.45, -0.6, 1.4, body)
+                .box(-1.15, 2.45, 1.3, 1.15, 2.57, 1.9, body)
                 .box(-1.1, 1.55, 1.4, 1.1, 1.75, 1.9, body)
                 .in(Mat.STEEL, s -> s
                         .pair(1.15, 0.2, -2.8, 1.21, 0.95, 2.7, 0x8A8E80)
                         .box(-1.15, 0.35, 2.95, 1.15, 1.0, 3.15, 0x8A8E80))
-                .in(Mat.PLASTIC, s -> s.box(-0.3, 2.47, 0.3, 0.3, 2.8, 0.9, NEUTRAL))
-                .window(-0.12, 2.56, 0.9, 0.12, 2.72, 0.95)
+                .in(Mat.PLASTIC, s -> s.box(-0.3, 2.57, 0.3, 0.3, 2.9, 0.9, NEUTRAL))
+                .window(-0.12, 2.66, 0.9, 0.12, 2.82, 0.95)
                 .lights(1.1, 1.05, 2.95, -3.0)
                 .wheels(1.12, 0.55, 2.0, -2.0)
                 .spike(0.6, 1.2, 0.65).spike(0.6, -2.4, 0.65)
-                .decal("T.I.V.", 0xE8E2C8, 1.16, 2.25, -1.8, 0.05);
+                .decal("T.I.V.", 0xE8E2C8, 1.16, 2.35, -1.8, 0.05);
         // steel louvers across the glass: armor you can still peek through
-        for (double y : new double[]{1.78, 2.0, 2.2}) {
+        for (double y : new double[]{1.8, 2.02, 2.34}) {
             b.in(Mat.STEEL, s -> s.pair(1.15, y, -0.5, 1.2, y + 0.05, 1.3, 0x8A8E80).box(-1.1, y, 1.4, 1.1, y + 0.05, 1.45, 0x8A8E80));
         }
         return b.build();
     }
 
-    /** Doppler on Wheels: white cab, flatbed, and a big spinning radar dish. */
+    /** Doppler on Wheels: white cab with a three-seat bench, flatbed, and a big spinning radar dish. Window line 1.45. */
     private static Model dopplerOnWheels() {
         return new Builder()
-                .box(-1.1, 0.6, 0.6, 1.1, 1.45, 2.3, WHITE)
+                .tub(1.1, 0.6, 0.9, 1.45, 0.55, 2.3, 1.95, WHITE)
                 .wedge(-1.05, 0.6, 2.3, 1.05, 1.45, 3.2, WHITE, 0.1, 0, 0.03, 0.18)
-                .box(-1.1, 1.45, 0.55, 1.1, 2.47, 0.62, WHITE)
-                .cab(1.1, 1.45, 2.35, 0.62, 2.3, WHITE)
+                .box(-1.1, 1.45, 0.55, 1.1, 2.57, 0.62, WHITE)
+                .cab(1.1, 1.45, 2.45, 0.62, 2.3, WHITE)
                 .box(-1.1, 1.1, -0.4, 1.1, 2.0, 0.5, WHITE)
                 .box(-1.1, 1.6, -0.4, -1.12, 1.9, 0.4, 0x2050A0)
                 .in(Mat.STEEL, b -> b
-                        .box(-1.0, 0.5, -3.2, 1.0, 0.9, 0.6, STEEL_TINT)
+                        .box(-1.0, 0.5, -3.2, 1.0, 0.9, 0.55, STEEL_TINT)
                         .box(-1.15, 0.9, -3.2, 1.15, 1.1, 0.55, 0x9A9EA4)
                         .box(-0.3, 1.1, -2.2, 0.3, 2.3, -1.6, STEEL_TINT)
                         .box(-0.3, 2.3, -2.2, 0.3, 2.5, -1.6, STEEL_TINT, SPIN)
@@ -443,19 +473,20 @@ public final class VehicleModels {
                 .in(Mat.PLASTIC, b -> b.box(-1.1, 0.35, 3.2, 1.1, 0.75, 3.35, NEUTRAL))
                 .in(Mat.GRILLE, b -> b.box(-0.6, 0.8, 3.2, 0.6, 1.3, 3.22, NEUTRAL))
                 .lights(1.05, 0.95, 3.2, -3.2)
-                .lightbar(0.8, 2.47, 1.6, 1.85)
+                .lightbar(0.8, 2.57, 1.6, 1.85)
                 .wheels(1.05, 0.5, 2.5, -2.3)
                 .decal("DOPPLER ON WHEELS", 0x1E3C82, 1.11, 1.38, 1.45, 0.016)
                 .build();
     }
 
-    /** A plain silver rental sedan, for when the interceptor is out of action. */
+    /** A plain silver rental sedan, for when the interceptor is out of action. Seats five. Window line 1.0. */
     private static Model rentalCar() {
         int silver = 0xC4CAD2;
         return new Builder()
-                .wedge(-0.95, 0.35, -2.2, 0.95, 1.0, 2.1, silver, 0.15, 0.1, 0.04, 0.12)
-                .box(-0.92, 1.0, -2.2, 0.92, 1.1, -1.25, silver)
-                .cab(0.92, 1.0, 1.65, -1.25, 0.75, silver)
+                .tub(0.95, 0.35, 0.45, 1.0, -1.25, 0.75, 0.6, silver)
+                .wedge(-0.95, 0.35, 0.75, 0.95, 1.0, 2.1, silver, 0.15, 0, 0.04, 0.12)
+                .wedge(-0.95, 0.35, -2.2, 0.95, 1.1, -1.25, silver, 0, 0.1, 0.04, 0)
+                .cab(0.92, 1.0, 1.9, -1.25, 0.75, silver)
                 .pair(0.92, 1.1, 0.55, 1.12, 1.25, 0.65, silver)
                 .in(Mat.PLASTIC, b -> b
                         .box(-0.97, 0.3, 2.1, 0.97, 0.55, 2.22, NEUTRAL)
