@@ -13,6 +13,11 @@ import net.neoforged.fml.ModList;
  */
 public class WebApp implements App {
     @Override
+    public boolean needsInternet() {
+        return true;
+    }
+
+    @Override
     public String id() {
         return "web";
     }

@@ -26,6 +26,11 @@ public class RadarApp implements App {
     private double sampledRange;
 
     @Override
+    public boolean needsInternet() {
+        return true;
+    }
+
+    @Override
     public String id() {
         return "radar";
     }

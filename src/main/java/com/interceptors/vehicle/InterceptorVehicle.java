@@ -57,6 +57,8 @@ public class InterceptorVehicle extends Entity {
     /** Mud and grit packed into the hydraulics, 0..100. At 100 they jam. */
     private static final EntityDataAccessor<Float> GRIME = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.FLOAT);
     public static final float GRIME_WARN = 60, GRIME_JAM = 100;
+    /** A satellite dish on the roof: the screens inside get online apps. */
+    private static final EntityDataAccessor<Boolean> DISH = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.BOOLEAN);
     /** Soft ground fills the hydraulics: full speed through mud jams them in about two minutes, rain doubles it. */
     private static final float GRIME_PER_TICK = 0.04f, GRIME_PER_SOFT_DEPLOY = 8, WASH_PER_TICK = 1.5f;
 
@@ -111,6 +113,20 @@ public class InterceptorVehicle extends Entity {
         builder.define(BATTERY, 100f);
         builder.define(LIGHTS, true);
         builder.define(GRIME, 0f);
+        builder.define(DISH, false);
+    }
+
+    /** Online apps work inside: a roof dish is installed, or it's the Doppler on Wheels with its radar. */
+    public boolean hasDish() {
+        return entityData.get(DISH) || spec == VehicleSpec.DOPPLER_ON_WHEELS;
+    }
+
+    public boolean hasInstalledDish() {
+        return entityData.get(DISH);
+    }
+
+    public void setDish(boolean dish) {
+        entityData.set(DISH, dish);
     }
 
     public float getGrime() {
@@ -258,6 +274,7 @@ public class InterceptorVehicle extends Entity {
         setBattery(tag.contains("Battery") ? tag.getFloat("Battery") : 100);
         entityData.set(LIGHTS, !tag.contains("Lights") || tag.getBoolean("Lights"));
         entityData.set(GRIME, tag.getFloat("Grime"));
+        entityData.set(DISH, tag.getBoolean("Dish"));
         entityData.set(DEPLOY, tag.getInt("Deploy"));
     }
 
@@ -272,6 +289,7 @@ public class InterceptorVehicle extends Entity {
         tag.putFloat("Battery", getBattery());
         tag.putBoolean("Lights", lightsOn());
         tag.putFloat("Grime", getGrime());
+        tag.putBoolean("Dish", entityData.get(DISH));
         tag.putInt("Deploy", getDeploy());
     }
 
@@ -404,6 +422,15 @@ public class InterceptorVehicle extends Entity {
             }
             return InteractionResult.sidedSuccess(level().isClientSide);
         }
+        if (stack.is(ModItems.SATELLITE_DISH.get()) && !hasDish()) {
+            if (!level().isClientSide) {
+                setDish(true);
+                if (!player.getAbilities().instabuild) stack.shrink(1);
+                player.displayClientMessage(Component.translatable("message.interceptors.dish_installed").withStyle(ChatFormatting.GREEN), true);
+                level().playSound(null, getX(), getY(), getZ(), SoundEvents.IRON_TRAPDOOR_CLOSE, SoundSource.NEUTRAL, 1.0f, 1.2f);
+            }
+            return InteractionResult.sidedSuccess(level().isClientSide);
+        }
         if (stack.is(Items.IRON_INGOT) && getDamage() > 0) {
             if (!level().isClientSide) {
                 setDamage(getDamage() - spec.health() / 6f);
@@ -424,7 +451,10 @@ public class InterceptorVehicle extends Entity {
         if (source.getEntity() instanceof Player player && !hasPassenger(player)) {
             // Sneak-punch packs the vehicle back into its item; creative players always pick it up.
             if (player.isShiftKeyDown() || player.getAbilities().instabuild) {
-                if (!player.getAbilities().instabuild) spawnAtLocation(getPickResult());
+                if (!player.getAbilities().instabuild) {
+                    spawnAtLocation(getPickResult());
+                    if (hasInstalledDish()) spawnAtLocation(new ItemStack(ModItems.SATELLITE_DISH.get()));
+                }
                 discard();
                 return true;
             }
@@ -616,6 +646,9 @@ public class InterceptorVehicle extends Entity {
             // Busted windows: wind and debris come straight in.
             for (Entity rider : getPassengers()) rider.hurt(damageSources().generic(), 1.0f);
         }
+        // Baseball-size hail dents the body.
+        float hailHere = forcedWind != null ? 0 : Storms.hailAt(level(), position().add(0, spec.height(), 0));
+        if (hailHere > 0.3f) setDamage(getDamage() + hailHere * 0.6f);
         float perSecond = WindPhysics.damagePerSecond(spec, mph);
         if (perSecond <= 0) return;
         setDamage(getDamage() + perSecond / 2);

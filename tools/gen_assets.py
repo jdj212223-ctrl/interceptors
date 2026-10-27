@@ -257,12 +257,46 @@ def hydraulics(rising):
     return np.concatenate([s, clunk * 1.6])
 
 
+def wind_roar():
+    """A deep, seamless roaring loop: low-passed brown noise with slow surges, like standing next to the core."""
+    rng = np.random.default_rng(21)
+    n = int(6.0 * SR)
+    brown = np.cumsum(rng.standard_normal(n))
+    brown -= np.convolve(brown, np.ones(2000) / 2000, mode="same")  # remove drift
+    hiss = rng.standard_normal(n) * 0.08
+    t = np.arange(n) / SR
+    surge = 0.75 + 0.25 * np.sin(2 * np.pi * t / 6.0) * np.sin(2 * np.pi * t / 2.0)
+    s = (brown / (np.abs(brown).max() or 1) + hiss) * surge
+    fade = int(0.5 * SR)  # crossfade the ends so it loops without a click
+    s[:fade] = s[:fade] * np.linspace(0, 1, fade) + s[-fade:] * np.linspace(1, 0, fade)
+    return s[:-fade]
+
+
+def hail_clatter():
+    """Hailstones hammering a metal roof: lots of short sharp knocks, a loop."""
+    rng = np.random.default_rng(22)
+    n = int(3.0 * SR)
+    s = rng.standard_normal(n) * 0.02
+    kt = np.arange(int(0.04 * SR)) / SR
+    for _ in range(260):
+        at = rng.integers(0, n - len(kt))
+        f = rng.uniform(900, 3200)
+        knock = (np.sin(2 * np.pi * f * kt) + rng.standard_normal(len(kt)) * 0.6) * np.exp(-kt * rng.uniform(80, 160))
+        s[at:at + len(kt)] += knock * rng.uniform(0.2, 1.0)
+    return s
+
+
+LOOPING = ("wind_roar", "hail")
+
+
 def sounds():
     write_ogg(horn(), "horn")
     write_ogg(hydraulics(False), "anchor_down")
     write_ogg(hydraulics(True), "anchor_up")
-    write_json({name: {"sounds": [f"{NS}:{name}"], "subtitle": f"subtitles.{NS}.{name}"}
-                for name in ("horn", "anchor_down", "anchor_up")}, ASSETS, "sounds.json")
+    write_ogg(wind_roar(), "wind_roar")
+    write_ogg(hail_clatter(), "hail")
+    write_json({name: {"sounds": [{"name": f"{NS}:{name}", "stream": name in LOOPING}], "subtitle": f"subtitles.{NS}.{name}"}
+                for name in ("horn", "anchor_down", "anchor_up", "wind_roar", "hail")}, ASSETS, "sounds.json")
 
 
 # =============================================================================== realistic vehicle materials
@@ -413,6 +447,41 @@ def mat_plastic():
     img += (fbm(h, w, 31, 4, 8)[..., None] - 0.5) * 12
     img = scratches(img, 32, 40, [90, 90, 90], [10, 10, 10])
     return mud(img, 33, PPB * 1.0)
+
+
+def mat_glass_cracked():
+    """The same tinted glass with a spider-web crack from a hailstone or debris hit."""
+    img = mat_glass()
+    h, w = img.shape[:2]
+    rng = np.random.default_rng(45)
+    for cx, cy in ((w * 0.3, h * 0.35), (w * 0.72, h * 0.6)):
+        for k in range(9):
+            a = k * 2 * np.pi / 9 + rng.uniform(-0.2, 0.2)
+            x, y = cx, cy
+            for _ in range(int(rng.uniform(18, 40))):
+                a += rng.uniform(-0.25, 0.25)
+                x, y = x + np.cos(a) * 1.5, y + np.sin(a) * 1.5
+                if 0 <= x < w and 0 <= y < h:
+                    img[int(y), int(x)] = [230, 235, 240, 235]
+        for r in (6, 13):
+            for t in np.linspace(0, 2 * np.pi, 60):
+                x, y = int(cx + np.cos(t) * r), int(cy + np.sin(t) * r)
+                if 0 <= x < w and 0 <= y < h and rng.random() < 0.7:
+                    img[y, x] = [215, 220, 228, 220]
+    return img
+
+
+def mat_paint_dented():
+    """Painted metal after a hail storm: pocked with shadowed dents."""
+    img = mat_paint()
+    h, w = img.shape[:2]
+    rng = np.random.default_rng(46)
+    yy, xx = np.mgrid[0:h, 0:w]
+    for _ in range(70):
+        cx, cy, r = rng.integers(0, w), rng.integers(0, h), rng.integers(3, 8)
+        d = np.hypot(xx - cx, yy - cy) / r
+        img += (np.where(d < 1, (yy - cy) / r * 35 * (1 - d), 0))[..., None]
+    return img
 
 
 def mat_glass():
@@ -574,7 +643,7 @@ MATERIALS = {
     "steel": mat_steel, "plastic": mat_plastic, "glass": mat_glass, "tire": mat_tire, "rim": mat_rim,
     "headlight": mat_headlight, "taillight": mat_taillight, "lightbar": mat_lightbar, "solar": mat_solar,
     "wood": mat_wood, "fabric": mat_fabric, "vinyl": mat_vinyl, "grille": mat_grille, "dish": mat_dish,
-    "screen": mat_screen,
+    "screen": mat_screen, "glass_cracked": mat_glass_cracked, "paint_dented": mat_paint_dented,
 }
 
 
@@ -681,6 +750,24 @@ def device_blocks():
 
 
 HANDHELD = {
+    "satellite_dish": ("""
+................
+................
+................
+...WWWWWWWWWW...
+..WWLWWLWWLWWW..
+..WLWWLWWLWWLW..
+..WWWWWWWWWWWW..
+...WWWWWWWWWW...
+.......SS.......
+.......SS.......
+......SSSS......
+.....KKKKKK.....
+................
+................
+................
+................
+""", {"W": "eef0f2", "L": "c8ccd2", "S": "8a8e92", "K": "2a2c30"}),
     "rugged_laptop": ("""
 ................
 ................
@@ -775,6 +862,7 @@ def recipes():
     write_json({"type": "minecraft:crafting_shapeless", "category": "misc",
                 "ingredients": [item(f"{NS}:laptop"), item("minecraft:iron_ingot"), item("minecraft:iron_ingot"), item("minecraft:leather")],
                 "result": {"id": f"{NS}:rugged_laptop", "count": 1}}, ROOT, "data", NS, "recipe", "rugged_laptop.json")
+    shaped("satellite_dish", [" W ", "WRW", " I "], {"W": "minecraft:white_concrete", "R": "minecraft:redstone", "I": "minecraft:iron_ingot"})
     shaped("ipad", ["IGI", "IQI", "IRI"], {"G": "minecraft:glass_pane", "Q": "minecraft:quartz", "R": "minecraft:redstone", "I": "minecraft:iron_ingot"})
     rod, cart = "minecraft:lightning_rod", "minecraft:minecart"
     shaped("gaming_van", ["WWW", "WCW", "IMI"], {"W": "minecraft:white_concrete", "C": f"{NS}:computer", "I": "minecraft:iron_ingot", "M": cart})

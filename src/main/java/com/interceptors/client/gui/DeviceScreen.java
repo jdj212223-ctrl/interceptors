@@ -2,6 +2,9 @@ package com.interceptors.client.gui;
 
 import com.interceptors.client.gui.apps.App;
 import com.interceptors.client.Keys;
+import com.interceptors.item.DeviceItem;
+import com.interceptors.network.DeviceUsePayload;
+import net.neoforged.neoforge.network.PacketDistributor;
 import com.interceptors.client.gui.apps.Apps;
 import com.interceptors.device.Device;
 import com.interceptors.vehicle.InterceptorVehicle;
@@ -28,6 +31,7 @@ public class DeviceScreen extends Screen {
     public final Device device;
     private final List<App> apps;
     private int current;
+    private int useTicks;
     /** The display area inside the bezel. */
     private int sx, sy, sw, sh;
 
@@ -117,6 +121,17 @@ public class DeviceScreen extends Screen {
 
         App app = apps.get(current);
         InterceptorVehicle v = vehicle();
+        if (device.portable() && battery() <= 0) {
+            drawMessage(g, Component.translatable("device.interceptors.battery_empty"), 0xFF6060);
+            drawStatusBar(g);
+            return;
+        }
+        if (app.needsInternet() && !online()) {
+            drawMessage(g, Component.translatable("device.interceptors.no_signal"), 0xFFC040);
+            drawStatusBar(g);
+            drawDock(g, mouseX, mouseY);
+            return;
+        }
         if (device == Device.CAR_DISPLAY && v != null && !v.screensWork()) {
             drawDead(g, v);
             return;
@@ -190,6 +205,30 @@ public class DeviceScreen extends Screen {
         }
     }
 
+    /** Online on the road only with a satellite dish on the vehicle; at home (not riding) there's always a connection. */
+    public boolean online() {
+        InterceptorVehicle v = vehicle();
+        return v == null || v.hasDish();
+    }
+
+    /** Charge of the handheld in the player's hand, 0..100 (plugged-in devices are always 100). */
+    private int battery() {
+        if (!device.portable() || minecraft == null || minecraft.player == null) return 100;
+        for (var hand : net.minecraft.world.InteractionHand.values()) {
+            var stack = minecraft.player.getItemInHand(hand);
+            if (stack.getItem() instanceof DeviceItem item && item.device() == device) return DeviceItem.battery(stack);
+        }
+        return 100;
+    }
+
+    private void drawMessage(GuiGraphics g, Component msg, int color) {
+        int y = sy + sh / 2 - 10;
+        for (var line : font.split(msg, sw - 30)) {
+            g.drawString(font, line, sx + sw / 2 - font.width(line) / 2, y, color, false);
+            y += 10;
+        }
+    }
+
     /** A frozen, rebooting or out-of-battery car display. */
     private void drawDead(GuiGraphics g, InterceptorVehicle v) {
         String key;
@@ -221,11 +260,17 @@ public class DeviceScreen extends Screen {
         int hours = (int) ((day / 1000 + 6) % 24), minutes = (int) (day % 1000 * 60 / 1000);
         String clock = String.format("%d:%02d", hours, minutes);
         g.drawString(font, clock, sx + sw / 2 - font.width(clock) / 2, sy + 2, 0xFFFFFF, false);
-        if (device == Device.IPAD || device == Device.MACBOOK || device == Device.LAPTOP) {
-            int bx = sx + sw - 20;
+        if (device.portable()) {
+            int bx = sx + sw - 20, charge = battery();
+            String pct = charge + "%";
+            g.drawString(font, pct, bx - font.width(pct) - 3, sy + 2, 0xC0C8D0, false);
             g.fill(bx, sy + 3, bx + 14, sy + 8, 0xFF9AA0A6);
-            g.fill(bx + 1, sy + 4, bx + 11, sy + 7, 0xFF40D060);
+            g.fill(bx + 1, sy + 4, bx + 1 + Math.round(12 * charge / 100f), sy + 7, charge > 20 ? 0xFF40D060 : 0xFFE03030);
             g.fill(bx + 14, sy + 4, bx + 15, sy + 7, 0xFF9AA0A6);
+        }
+        if (vehicle() != null) {
+            Component net = Component.translatable(online() ? "device.interceptors.sat_ok" : "device.interceptors.sat_none");
+            g.drawString(font, net, sx + sw - 100 - font.width(net), sy + 2, online() ? 0x80D080 : 0xFFC040, false);
         }
     }
 
@@ -315,6 +360,8 @@ public class DeviceScreen extends Screen {
 
     @Override
     public void tick() {
+        // Handhelds use battery while their screen is on: one percent every five seconds.
+        if (device.portable() && ++useTicks % 100 == 0) PacketDistributor.sendToServer(new DeviceUsePayload(device.ordinal()));
         apps.get(current).tick(this);
     }
 

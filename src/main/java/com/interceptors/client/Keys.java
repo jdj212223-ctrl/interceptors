@@ -19,5 +19,8 @@ public final class Keys {
     public static final KeyMapping LIGHTS = new KeyMapping("key.interceptors.lights", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_U, CATEGORY);
 
+    public static final KeyMapping BROADCAST = new KeyMapping("key.interceptors.broadcast", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY);
+
     private Keys() {}
 }

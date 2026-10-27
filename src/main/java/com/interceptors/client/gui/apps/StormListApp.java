@@ -14,6 +14,11 @@ public class StormListApp implements App {
     private int scroll;
 
     @Override
+    public boolean needsInternet() {
+        return true;
+    }
+
+    @Override
     public String id() {
         return "storms";
     }

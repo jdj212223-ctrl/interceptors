@@ -59,6 +59,22 @@ Fix parts with a **Field Repair Kit** (right-click the vehicle; fixes the worst 
 with iron ingots. Turn failures down or off in `interceptors-server.toml` (`failures.enabled`, `wearRate`,
 `freezeRate`).
 
+## Storms you can feel (2.0)
+
+- **Wind roar:** a deafening roar that grows as the tornadic wind around you rises, drowning everything out near
+  the core (a little quieter inside a vehicle with intact windows).
+- **Baseball-size hail:** hail from PMWeather clatters on the roof, fogs the view in and streaks across the screen,
+  dents vehicles, and hurts anyone caught outside under open sky.
+- **Visible damage:** windows crack and then shatter, paint and armor get dented as the body takes damage, and
+  below 30% armor the trim and stripes are torn off.
+- **Satellite dish:** right-click a vehicle with a Satellite Dish to put one on the roof. Without it the online
+  apps (Radar, Storms, Web) on screens inside show NO SIGNAL; the Intercept arrow and dash keep working. The
+  Doppler on Wheels' radar counts as a dish.
+- **Batteries:** the MacBook, iPad and Rugged Laptop drain while open (about 8 minutes of screen time) and charge
+  while you ride in any interceptor (the van's charger draws on its solar battery).
+- **Stream overlay:** press **B** for a LIVE lower third with your biome, the wind, the tornado and your vehicle's
+  telemetry, made to look good captured in OBS.
+
 ## Controls
 
 | Key | Does |
@@ -71,6 +87,7 @@ with iron ingots. Turn failures down or off in `interceptors-server.toml` (`fail
 | H | Horn |
 | Y | Car display (vehicle, radar, intercept, storm list; Tornado Dodge in the van) |
 | U | Underglow lights on / off |
+| B | Stream overlay (LIVE lower third) on / off |
 | Sneak + punch | Pack the vehicle back into its item |
 
 All keys can be changed under Options > Controls > Interceptors. They are normal Minecraft keys, so Vivecraft can map

@@ -11,6 +11,11 @@ public interface App {
     /** Dock icon colour. */
     int color();
 
+    /** Needs a data connection: on the road that means a satellite dish on the vehicle. */
+    default boolean needsInternet() {
+        return false;
+    }
+
     void render(GuiGraphics g, DeviceScreen screen, int x, int y, int w, int h, int mouseX, int mouseY, float partialTick);
 
     default void tick(DeviceScreen screen) {}

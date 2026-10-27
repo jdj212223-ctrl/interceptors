@@ -20,6 +20,11 @@ public enum Device {
         return id;
     }
 
+    /** Runs on a battery (handhelds); the computer, laptop block and car display are plugged in. */
+    public boolean portable() {
+        return this == MACBOOK || this == IPAD || this == RUGGED_LAPTOP;
+    }
+
     /**
      * Opens a device's screen on this computer. Set by the client; a no-op on a dedicated server, which never
      * gets asked anyway because blocks and items only call it on the client side.

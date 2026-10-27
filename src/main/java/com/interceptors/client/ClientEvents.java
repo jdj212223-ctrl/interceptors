@@ -1,6 +1,7 @@
 package com.interceptors.client;
 
 import com.interceptors.Interceptors;
+import com.interceptors.client.gui.BroadcastHud;
 import com.interceptors.device.Device;
 import com.interceptors.network.VehicleActionPayload;
 import com.interceptors.vehicle.InterceptorVehicle;
@@ -23,6 +24,17 @@ public final class ClientEvents {
         return Math.min(1, rebootHold / (float) REBOOT_HOLD_TICKS);
     }
 
+    /** Hail closes the view right in: thick fog that grows with the hail. */
+    @SubscribeEvent
+    public static void fog(net.neoforged.neoforge.client.event.ViewportEvent.RenderFog e) {
+        float hail = StormAmbience.hailLevel();
+        if (hail < 0.05f) return;
+        float far = net.minecraft.util.Mth.lerp(Math.min(1, hail * 1.4f), e.getFarPlaneDistance(), 18);
+        e.setFarPlaneDistance(Math.min(e.getFarPlaneDistance(), far));
+        e.setNearPlaneDistance(Math.min(e.getNearPlaneDistance(), far * 0.1f));
+        e.setCanceled(true);
+    }
+
     @SubscribeEvent
     public static void tick(ClientTickEvent.Post e) {
         Minecraft mc = Minecraft.getInstance();
@@ -36,6 +48,8 @@ public final class ClientEvents {
         while (Keys.ANCHORS.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.ANCHORS));
         while (Keys.HORN.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.HORN));
         while (Keys.LIGHTS.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.LIGHTS));
+        while (Keys.BROADCAST.consumeClick()) BroadcastHud.enabled = !BroadcastHud.enabled;
+        StormAmbience.tick(mc);
         while (Keys.DISPLAY.consumeClick()) if (inVehicle) Device.CAR_DISPLAY.open();
     }
 }

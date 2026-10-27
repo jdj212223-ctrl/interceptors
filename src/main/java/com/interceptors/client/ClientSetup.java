@@ -1,7 +1,9 @@
 package com.interceptors.client;
 
 import com.interceptors.Interceptors;
+import com.interceptors.client.gui.BroadcastHud;
 import com.interceptors.client.gui.DeviceScreen;
+import com.interceptors.client.gui.HailOverlay;
 import com.interceptors.client.gui.DropAnchorHud;
 import com.interceptors.client.gui.VehicleHud;
 import com.interceptors.client.render.VehicleRenderer;
@@ -39,11 +41,14 @@ public final class ClientSetup {
         e.register(Keys.HORN);
         e.register(Keys.DISPLAY);
         e.register(Keys.LIGHTS);
+        e.register(Keys.BROADCAST);
     }
 
     @SubscribeEvent
     public static void gui(RegisterGuiLayersEvent e) {
+        e.registerAboveAll(Interceptors.id("hail"), HailOverlay::render);
         e.registerAboveAll(Interceptors.id("vehicle_hud"), VehicleHud::render);
+        e.registerAboveAll(Interceptors.id("broadcast"), BroadcastHud::render);
         e.registerAboveAll(Interceptors.id("drop_anchor"), DropAnchorHud::render);
     }
 }

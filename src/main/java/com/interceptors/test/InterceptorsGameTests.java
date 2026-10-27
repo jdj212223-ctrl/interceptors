@@ -4,6 +4,8 @@ import com.interceptors.Interceptors;
 import com.interceptors.client.render.VehicleModels;
 import com.interceptors.compat.Storms;
 import com.interceptors.registry.ModEntities;
+import com.interceptors.item.DeviceItem;
+import com.interceptors.registry.ModItems;
 import com.interceptors.vehicle.AnchorStatus;
 import com.interceptors.vehicle.InterceptorVehicle;
 import com.interceptors.vehicle.Part;
@@ -11,6 +13,7 @@ import com.interceptors.vehicle.VehicleSpec;
 import com.interceptors.vehicle.WindPhysics;
 import net.minecraft.core.BlockPos;
 import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.world.item.ItemStack;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.server.level.ServerLevel;
@@ -331,6 +334,42 @@ public class InterceptorsGameTests {
     public static void everyVehicleSeatsAFewPeople(GameTestHelper helper) {
         for (VehicleSpec spec : VehicleSpec.ALL) helper.assertTrue(spec.seats().size() >= 3, spec.id() + " only seats " + spec.seats().size());
         helper.succeed();
+    }
+
+    @GameTest(template = "pad")
+    public static void satelliteDishInstallsAndSaves(GameTestHelper helper) {
+        InterceptorVehicle van = park(helper, VehicleSpec.GAMING_VAN);
+        helper.assertTrue(!van.hasDish(), "a new van already has a dish");
+        van.setDish(true);
+        CompoundTag tag = van.saveWithoutId(new CompoundTag());
+        InterceptorVehicle copy = ModEntities.vehicle(VehicleSpec.GAMING_VAN).create(helper.getLevel());
+        copy.load(tag);
+        helper.assertTrue(copy.hasDish(), "dish lost on save");
+        helper.assertTrue(park(helper, VehicleSpec.DOPPLER_ON_WHEELS).hasDish(), "the DOW's radar should count as a dish");
+        helper.succeed();
+    }
+
+    @GameTest(template = "pad", timeoutTicks = 100)
+    public static void devicesChargeWhileRiding(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_1);
+        net.minecraft.world.entity.npc.Villager rider = net.minecraft.world.entity.EntityType.VILLAGER.create(helper.getLevel());
+        rider.moveTo(dom.position());
+        helper.getLevel().addFreshEntity(rider);
+        rider.startRiding(dom);
+        ItemStack ipad = new ItemStack(ModItems.IPAD.get());
+        DeviceItem.setBattery(ipad, 10);
+        ItemStack loose = new ItemStack(ModItems.MACBOOK.get());
+        DeviceItem.setBattery(loose, 10);
+        helper.onEachTick(() -> {
+            ipad.inventoryTick(helper.getLevel(), rider, 0, false);
+            loose.inventoryTick(helper.getLevel(), dom, 0, false);
+        });
+        helper.runAfterDelay(81, () -> {
+            helper.assertTrue(DeviceItem.battery(ipad) > 10, "iPad didn't charge while riding: " + DeviceItem.battery(ipad));
+            helper.assertTrue(DeviceItem.battery(loose) == 10, "a device charged without anyone riding");
+            helper.assertTrue(DeviceItem.battery(new ItemStack(ModItems.MACBOOK.get())) == 100, "new devices should start full");
+            helper.succeed();
+        });
     }
 
     @GameTest(template = "pad")

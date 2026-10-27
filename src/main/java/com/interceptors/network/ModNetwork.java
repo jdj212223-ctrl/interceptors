@@ -4,7 +4,10 @@ import com.interceptors.Interceptors;
 import com.interceptors.vehicle.InterceptorVehicle;
 import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
+import com.interceptors.item.DeviceItem;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.item.ItemStack;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -20,6 +23,20 @@ public final class ModNetwork {
         r.playToServer(VehicleActionPayload.TYPE, VehicleActionPayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof ServerPlayer sp && sp.getVehicle() instanceof InterceptorVehicle v) handle(sp, v, p.action());
         }));
+        r.playToServer(DeviceUsePayload.TYPE, DeviceUsePayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof ServerPlayer sp) drain(sp, p.device());
+        }));
+    }
+
+    /** One tick of battery use for the matching device in either hand. */
+    private static void drain(ServerPlayer player, int deviceOrdinal) {
+        for (InteractionHand hand : InteractionHand.values()) {
+            ItemStack stack = player.getItemInHand(hand);
+            if (stack.getItem() instanceof DeviceItem item && item.device().ordinal() == deviceOrdinal) {
+                DeviceItem.setBattery(stack, DeviceItem.battery(stack) - 1);
+                return;
+            }
+        }
     }
 
     private static void say(ServerPlayer player, String key) {

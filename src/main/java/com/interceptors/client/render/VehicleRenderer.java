@@ -58,17 +58,20 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         String id = vehicle.spec().id();
         VehicleModels.Box pivot = VehicleModels.get(id).stream().filter(b -> (b.flags() & VehicleModels.SPIN) != 0).findFirst().orElse(null);
         Map<Mat, List<VehicleModels.Box>> groups = grouped(vehicle.spec());
+        float health = vehicle.healthFraction();
 
         // Solid boxes first, then the see-through glass on top of them.
         for (int pass = 0; pass < 2; pass++) {
             for (Map.Entry<Mat, List<VehicleModels.Box>> group : groups.entrySet()) {
-                Mat mat = group.getKey();
+                Mat mat = worn(group.getKey(), vehicle, health);
+                if (mat == null) continue;
                 VertexConsumer vc = null;
                 for (VehicleModels.Box b : group.getValue()) {
                     int f = b.flags();
                     if ((f & VehicleModels.CLEAR) != 0 != (pass == 1)) continue;
                     if ((f & VehicleModels.ANCHOR) != 0 && extension <= 0) continue;
                     if ((f & VehicleModels.RGB) != 0 && !lights) continue;
+                    if (health < TORN_BELOW && tornOff(b)) continue;
                     if (vc == null) vc = buffers.getBuffer(pass == 0 ? RenderType.entityCutoutNoCull(mat.texture) : RenderType.entityTranslucent(mat.texture));
                     pose.pushPose();
                     // Spikes and jacks start tucked up in the body and slide down as they deploy.
@@ -86,10 +89,63 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                 }
             }
         }
-        decals(id, pose, buffers, light);
+        if (health >= TORN_BELOW) decals(id, pose, buffers, light);
+        if (vehicle.hasInstalledDish()) dish(vehicle.spec(), pose, buffers, light);
         dashboard(vehicle, pose, buffers);
         pose.popPose();
         super.render(vehicle, yaw, partialTick, pose, buffers, light);
+    }
+
+    /** Below this much armor left, trim and outer panels have been ripped off. Below DENTED_BELOW the body is dented. */
+    private static final float TORN_BELOW = 0.3f, DENTED_BELOW = 0.6f;
+
+    /**
+     * What a material looks like after the storm: cracked glass when the windows are worn, none at all once
+     * they've shattered, and dented paint and armor as the body takes damage.
+     */
+    private static Mat worn(Mat mat, InterceptorVehicle v, float health) {
+        if (mat == Mat.GLASS) {
+            int windows = v.condition(Part.WINDOWS);
+            if (Part.failed(windows)) return null;
+            if (Part.warning(windows)) return Mat.GLASS_CRACKED;
+        }
+        if (health < DENTED_BELOW && mat == Mat.PAINT) return Mat.PAINT_DENTED;
+        if (health < DENTED_BELOW && mat == Mat.ARMOR) return Mat.ARMOR_DENTED;
+        return mat;
+    }
+
+    /** Thin outer trim (stripes, cage bars, chevrons): the first things to be torn away. */
+    private static boolean tornOff(VehicleModels.Box b) {
+        if ((b.flags() & (VehicleModels.SKIRT | VehicleModels.ANCHOR | VehicleModels.GLOW)) != 0) return false;
+        boolean outerTrim = b.x1() - b.x0() < 0.07f && Math.abs(b.x1()) >= 0.9f;
+        return outerTrim && (b.mat() == Mat.STEEL || b.mat() == Mat.PAINT);
+    }
+
+    private static final Map<String, float[]> ROOF = new ConcurrentHashMap<>();
+
+    /**
+     * A Starlink-style flat white dish on a short mast, on the roof toward the back: highest point of the body
+     * along the middle of the vehicle.
+     */
+    private static void dish(VehicleSpec spec, PoseStack pose, MultiBufferSource buffers, int light) {
+        float[] at = ROOF.computeIfAbsent(spec.id(), id -> {
+            List<VehicleModels.Box> boxes = VehicleModels.get(id);
+            float minZ = 0;
+            for (VehicleModels.Box b : boxes) minZ = Math.min(minZ, b.z0());
+            float z = minZ * 0.45f, top = 0;
+            for (VehicleModels.Box b : boxes) {
+                if ((b.flags() & (VehicleModels.SPIN | VehicleModels.ANCHOR | VehicleModels.GLOW)) != 0) continue;
+                if (b.x0() <= 0 && b.x1() >= 0 && b.z0() <= z && b.z1() >= z) top = Math.max(top, b.y1());
+            }
+            return new float[]{z, top};
+        });
+        float z = at[0], y = at[1];
+        VertexConsumer steel = buffers.getBuffer(RenderType.entityCutoutNoCull(Mat.STEEL.texture));
+        box(pose.last(), steel, new VehicleModels.Box(-0.05f, y, z - 0.05f, 0.05f, y + 0.22f, z + 0.05f, 0xD0D4D8, 0, Mat.STEEL, 0, 0, 0, 0),
+                Mat.STEEL, 0xD0D4D8, light);
+        VertexConsumer paint = buffers.getBuffer(RenderType.entityCutoutNoCull(Mat.PAINT.texture));
+        box(pose.last(), paint, new VehicleModels.Box(-0.3f, y + 0.22f, z - 0.24f, 0.3f, y + 0.3f, z + 0.24f, 0xF4F6F7, 0, Mat.PAINT, 0, 0, 0.02f, 0.06f),
+                Mat.PAINT, 0xF4F6F7, light);
     }
 
     /** Painted lettering on both sides of the body. */

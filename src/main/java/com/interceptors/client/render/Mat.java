@@ -27,6 +27,9 @@ public enum Mat {
     GRILLE(64, 64, false, true),
     DISH(256, 256, false, true),
     SCREEN(64, 64, false, true),
+    /** Worn variants swapped in as the vehicle takes damage. */
+    GLASS_CRACKED(128, 128, false, false),
+    PAINT_DENTED(256, 192, true, false),
     /** Plain white, for glowing strips and small coloured bits. */
     PLAIN(16, 16, true, true);
 

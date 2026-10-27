@@ -3,6 +3,7 @@ package com.interceptors;
 import com.interceptors.config.InterceptorsConfig;
 import com.interceptors.registry.ModBlocks;
 import com.interceptors.registry.ModCreativeTabs;
+import com.interceptors.registry.ModDataComponents;
 import com.interceptors.registry.ModEntities;
 import com.interceptors.registry.ModItems;
 import com.interceptors.registry.ModSounds;
@@ -22,6 +23,7 @@ public class Interceptors {
     public Interceptors(IEventBus modBus, ModContainer container) {
         ModBlocks.BLOCKS.register(modBus);
         ModEntities.ENTITIES.register(modBus);
+        ModDataComponents.COMPONENTS.register(modBus);
         ModItems.ITEMS.register(modBus);
         ModSounds.SOUNDS.register(modBus);
         ModCreativeTabs.TABS.register(modBus);

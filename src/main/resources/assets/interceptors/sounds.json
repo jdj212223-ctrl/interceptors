@@ -1,20 +1,47 @@
 {
   "horn": {
     "sounds": [
-      "interceptors:horn"
+      {
+        "name": "interceptors:horn",
+        "stream": false
+      }
     ],
     "subtitle": "subtitles.interceptors.horn"
   },
   "anchor_down": {
     "sounds": [
-      "interceptors:anchor_down"
+      {
+        "name": "interceptors:anchor_down",
+        "stream": false
+      }
     ],
     "subtitle": "subtitles.interceptors.anchor_down"
   },
   "anchor_up": {
     "sounds": [
-      "interceptors:anchor_up"
+      {
+        "name": "interceptors:anchor_up",
+        "stream": false
+      }
     ],
     "subtitle": "subtitles.interceptors.anchor_up"
+  },
+  "wind_roar": {
+    "sounds": [
+      {
+        "name": "interceptors:wind_roar",
+        "stream": true
+      }
+    ],
+    "subtitle": "subtitles.interceptors.wind_roar"
+  },
+  "hail": {
+    "sounds": [
+      {
+        "name": "interceptors:hail",
+        "stream": true
+      }
+    ],
+    "subtitle": "subtitles.interceptors.hail"
   }
 }
