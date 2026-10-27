@@ -105,14 +105,30 @@ public final class VehicleModels {
             b.in(Mat.PLASTIC, f -> f.box(-DASH_HALF_WIDTH - 0.03, dy + DASH_BOTTOM - 0.02, dz - 0.03, DASH_HALF_WIDTH + 0.03, dy + DASH_TOP + 0.03, dz, NEUTRAL));
             if (spec.seats().size() > 1) {
                 double lx = spec.seats().get(1).x, lz = dz - 0.08;
-                // Toughbook-style rugged laptop on a pole mount: thick grey case, rubber corners, glowing screen.
+                // Toughbook-style rugged laptop on a pole mount. The Dom 3 (the toughest) gets the full treatment:
+                // silver magnesium case, chunky black rubber corners, a carry handle and a latch on the lid.
+                boolean tough = spec == com.interceptors.vehicle.VehicleSpec.DOMINATOR_3;
+                int caseColor = tough ? 0xD4D8DC : 0xA8ACB0;
+                double bump = tough ? 0.035 : 0.02;
                 b.in(Mat.STEEL, f -> f.box(lx - 0.02, dy - 0.2, lz - 0.02, lx + 0.02, dy + 0.35, lz + 0.02, STEEL_TINT))
+                        .in(Mat.STEEL, f -> f
+                                .box(lx - 0.19, dy + 0.35, lz - 0.14, lx + 0.19, dy + 0.4, lz + 0.06, caseColor)
+                                .box(lx - 0.19, dy + 0.4, lz + 0.02, lx + 0.19, dy + 0.63, lz + 0.06, caseColor))
                         .in(Mat.PLASTIC, f -> f
-                                .box(lx - 0.19, dy + 0.35, lz - 0.14, lx + 0.19, dy + 0.39, lz + 0.06, 0xA8ACB0)
-                                .box(lx - 0.19, dy + 0.39, lz + 0.02, lx + 0.19, dy + 0.62, lz + 0.06, 0xA8ACB0)
-                                .box(lx - 0.21, dy + 0.35, lz, lx - 0.17, dy + 0.64, lz + 0.07, 0x303030)
-                                .box(lx + 0.17, dy + 0.35, lz, lx + 0.21, dy + 0.64, lz + 0.07, 0x303030))
-                        .in(Mat.SCREEN, f -> f.box(lx - 0.16, dy + 0.42, lz + 0.015, lx + 0.16, dy + 0.6, lz + 0.02, NEUTRAL, GLOW));
+                                .box(lx - 0.19 - bump, dy + 0.34, lz - 0.01, lx - 0.17, dy + 0.65, lz + 0.07, 0x202020)
+                                .box(lx + 0.17, dy + 0.34, lz - 0.01, lx + 0.19 + bump, dy + 0.65, lz + 0.07, 0x202020)
+                                .box(lx - 0.19 - bump, dy + 0.34, lz - 0.16, lx - 0.15, dy + 0.42, lz - 0.1, 0x202020)
+                                .box(lx + 0.15, dy + 0.34, lz - 0.16, lx + 0.19 + bump, dy + 0.42, lz - 0.1, 0x202020))
+                        .in(Mat.SCREEN, f -> f.box(lx - (tough ? 0.14 : 0.16), dy + (tough ? 0.44 : 0.42), lz + 0.015,
+                                lx + (tough ? 0.14 : 0.16), dy + (tough ? 0.59 : 0.6), lz + 0.02, NEUTRAL, GLOW));
+                if (tough) {
+                    b.in(Mat.PLASTIC, f -> f
+                            // carry handle along the front edge, and the hinge latch on top of the lid
+                            .box(lx - 0.1, dy + 0.36, lz - 0.2, lx + 0.1, dy + 0.38, lz - 0.17, 0x202020)
+                            .box(lx - 0.1, dy + 0.35, lz - 0.17, lx - 0.08, dy + 0.38, lz - 0.14, 0x202020)
+                            .box(lx + 0.08, dy + 0.35, lz - 0.17, lx + 0.1, dy + 0.38, lz - 0.14, 0x202020)
+                            .box(lx - 0.04, dy + 0.63, lz + 0.01, lx + 0.04, dy + 0.66, lz + 0.07, 0x303030));
+                }
             }
             all.addAll(b.build().boxes());
             return List.copyOf(all);
