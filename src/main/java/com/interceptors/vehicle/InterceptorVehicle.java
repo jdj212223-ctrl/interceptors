@@ -3,12 +3,17 @@ package com.interceptors.vehicle;
 import com.interceptors.compat.Storms;
 import com.interceptors.registry.ModItems;
 import com.interceptors.registry.ModSounds;
+import com.interceptors.config.InterceptorsConfig;
+import net.minecraft.ChatFormatting;
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.particles.ParticleTypes;
+import net.minecraft.network.chat.Component;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.network.syncher.EntityDataAccessor;
 import net.minecraft.network.syncher.EntityDataSerializers;
 import net.minecraft.network.syncher.SynchedEntityData;
 import net.minecraft.server.level.ServerLevel;
+import net.minecraft.sounds.SoundEvent;
 import net.minecraft.sounds.SoundEvents;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.Mth;
@@ -37,6 +42,19 @@ public class InterceptorVehicle extends Entity {
     private static final EntityDataAccessor<Float> DAMAGE = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.FLOAT);
     private static final EntityDataAccessor<Boolean> ANCHORED = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.BOOLEAN);
     private static final EntityDataAccessor<Integer> HURT_TIME = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.INT);
+    /** Every part's condition, 0..100, packed 8 bits each in {@link Part} order. */
+    private static final EntityDataAccessor<Long> PARTS = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.LONG);
+    /** Anchors moving: ticks left going down (positive) or coming up (negative). */
+    private static final EntityDataAccessor<Integer> DEPLOY = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Boolean> FROZEN = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.BOOLEAN);
+    /** Ticks left of a computer reboot. */
+    private static final EntityDataAccessor<Integer> REBOOT = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<Float> BATTERY = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.FLOAT);
+    private static final EntityDataAccessor<Boolean> LIGHTS = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.BOOLEAN);
+
+    public static final int RETRACT_TICKS = 20, REBOOT_TICKS = 100;
+    /** Solar battery: a full charge runs the screens for about 17 in-game hours, and the sun fills it in about 7. */
+    private static final float DRAIN_PER_TICK = 100f / 17000, CHARGE_PER_TICK = 100f / 7000;
 
     private final VehicleSpec spec;
     /** Forward speed in blocks per tick; negative is reversing. */
@@ -44,6 +62,8 @@ public class InterceptorVehicle extends Entity {
     /** Sideways/vertical shove left over from the wind, so a gust carries on for a moment. */
     private Vec3 drift = Vec3.ZERO;
     private float deltaRotation;
+    /** How far it actually moved last tick, on every side (the server doesn't know the driver's speed). */
+    private double groundSpeed;
     /** Wind the vehicle last felt, mph. Read by the dashboard. */
     private Vec3 lastWind = Vec3.ZERO;
     /** GameTests set this to fake a tornado; null means ask PMWeather. */
@@ -70,6 +90,89 @@ public class InterceptorVehicle extends Entity {
         builder.define(DAMAGE, 0f);
         builder.define(ANCHORED, false);
         builder.define(HURT_TIME, 0);
+        builder.define(PARTS, packAll(100));
+        builder.define(DEPLOY, 0);
+        builder.define(FROZEN, false);
+        builder.define(REBOOT, 0);
+        builder.define(BATTERY, 100f);
+        builder.define(LIGHTS, true);
+    }
+
+    private static long packAll(int condition) {
+        long packed = 0;
+        for (Part p : Part.values()) packed |= (long) condition << (p.ordinal() * 8);
+        return packed;
+    }
+
+    public int condition(Part part) {
+        return (int) (entityData.get(PARTS) >> (part.ordinal() * 8) & 0xFF);
+    }
+
+    public void setCondition(Part part, int condition) {
+        long packed = entityData.get(PARTS) & ~(0xFFL << (part.ordinal() * 8));
+        entityData.set(PARTS, packed | (long) Mth.clamp(condition, 0, 100) << (part.ordinal() * 8));
+    }
+
+    public boolean failed(Part part) {
+        return Part.failed(condition(part));
+    }
+
+    public int getDeploy() {
+        return entityData.get(DEPLOY);
+    }
+
+    public boolean isFrozen() {
+        return entityData.get(FROZEN);
+    }
+
+    public int getReboot() {
+        return entityData.get(REBOOT);
+    }
+
+    public float getBattery() {
+        return entityData.get(BATTERY);
+    }
+
+    public void setBattery(float battery) {
+        entityData.set(BATTERY, Mth.clamp(battery, 0, 100));
+    }
+
+    /** Screens and dash work: computer alive and not frozen, and (on solar vehicles) battery left. */
+    public boolean screensWork() {
+        return !isFrozen() && getReboot() == 0 && !failed(Part.COMPUTER) && (!spec.solar() || getBattery() > 0);
+    }
+
+    public boolean lightsOn() {
+        return entityData.get(LIGHTS);
+    }
+
+    public void toggleLights() {
+        entityData.set(LIGHTS, !lightsOn());
+    }
+
+    /** 0 = anchors up, 1 = fully down; in between while they move. */
+    public float anchorExtension() {
+        int d = getDeploy();
+        int down = Math.max(1, deployTicks());
+        if (d > 0) return 1 - d / (float) down;
+        if (d < 0) return -d / (float) RETRACT_TICKS;
+        return isAnchored() ? 1 : 0;
+    }
+
+    private int deployTicks() {
+        return spec.deployTicks() * (Part.warning(condition(Part.HYDRAULICS)) ? 2 : 1);
+    }
+
+    public AnchorStatus anchorStatus() {
+        if (!spec.hasAnchors()) return AnchorStatus.NONE;
+        if (getReboot() > 0) return AnchorStatus.REBOOTING;
+        if (isFrozen() || failed(Part.COMPUTER)) return AnchorStatus.FROZEN;
+        if (failed(Part.HYDRAULICS)) return AnchorStatus.FAILED;
+        int d = getDeploy();
+        if (d > 0) return AnchorStatus.DEPLOYING;
+        if (d < 0) return AnchorStatus.RETRACTING;
+        if (isAnchored()) return AnchorStatus.ANCHORED;
+        return Math.max(Math.abs(speed), groundSpeed) > 0.08 ? AnchorStatus.STANDBY : AnchorStatus.READY;
     }
 
     public float getDamage() {
@@ -108,25 +211,111 @@ public class InterceptorVehicle extends Entity {
     protected void readAdditionalSaveData(CompoundTag tag) {
         setDamage(tag.getFloat("Damage"));
         setAnchored(tag.getBoolean("Anchored"));
+        CompoundTag parts = tag.getCompound("Parts");
+        for (Part p : Part.values()) setCondition(p, parts.contains(p.id()) ? parts.getInt(p.id()) : 100);
+        entityData.set(FROZEN, tag.getBoolean("Frozen"));
+        setBattery(tag.contains("Battery") ? tag.getFloat("Battery") : 100);
+        entityData.set(LIGHTS, !tag.contains("Lights") || tag.getBoolean("Lights"));
     }
 
     @Override
     protected void addAdditionalSaveData(CompoundTag tag) {
         tag.putFloat("Damage", getDamage());
         tag.putBoolean("Anchored", isAnchored());
+        CompoundTag parts = new CompoundTag();
+        for (Part p : Part.values()) parts.putInt(p.id(), condition(p));
+        tag.put("Parts", parts);
+        tag.putBoolean("Frozen", isFrozen());
+        tag.putFloat("Battery", getBattery());
+        tag.putBoolean("Lights", lightsOn());
     }
 
     // ------------------------------------------------------------------ actions
 
-    /** Drop or raise the anchors. Only works when stopped (you can't spike the road at 40 mph). */
-    public boolean toggleAnchors() {
-        if (!isAnchored() && Math.abs(speed) > 0.08) return false;
-        setAnchored(!isAnchored());
+    /**
+     * Drop or raise the anchors. They take a moment to go down, and only start when you're stopped (you can't
+     * spike the road at 40 mph). Returns null if it worked, or the language key of why not.
+     */
+    @Nullable
+    public String toggleAnchors() {
+        if (!spec.hasAnchors()) return "message.interceptors.no_anchors";
+        if (getReboot() > 0) return "message.interceptors.rebooting";
+        if (isFrozen()) return "message.interceptors.frozen";
+        if (failed(Part.COMPUTER)) return "message.interceptors.computer_dead";
+        if (getDeploy() != 0) return "message.interceptors.busy";
+        if (isAnchored()) {
+            setAnchored(false);
+            entityData.set(DEPLOY, -RETRACT_TICKS);
+            playVehicleSound(ModSounds.ANCHOR_UP.get());
+            return null;
+        }
+        if (failed(Part.HYDRAULICS)) return "message.interceptors.hydraulics_failed";
+        if (Math.max(Math.abs(speed), groundSpeed) > 0.08) return "message.interceptors.stop_first";
+        entityData.set(DEPLOY, deployTicks());
         speed = 0;
-        level().playSound(null, getX(), getY(), getZ(), isAnchored() ? ModSounds.ANCHOR_DOWN.get() : ModSounds.ANCHOR_UP.get(),
-                SoundSource.NEUTRAL, 1.0f, 1.0f);
+        playVehicleSound(ModSounds.ANCHOR_DOWN.get());
+        return null;
+    }
+
+    /** Hold the anchor key while frozen: the computer restarts after a few seconds. */
+    @Nullable
+    public String reboot() {
+        if (failed(Part.COMPUTER)) return "message.interceptors.computer_dead";
+        if (!isFrozen() || getReboot() > 0) return null;
+        entityData.set(REBOOT, REBOOT_TICKS);
+        playVehicleSound(SoundEvents.BEACON_POWER_SELECT);
+        return null;
+    }
+
+    /** The anchor computer locks up. Anchors stay exactly where they are, even halfway down. */
+    public void freeze() {
+        if (isFrozen() || !spec.hasAnchors()) return;
+        entityData.set(FROZEN, true);
+        entityData.set(DEPLOY, 0);
+        playVehicleSound(SoundEvents.BEACON_DEACTIVATE);
+        tellRiders("message.interceptors.froze");
+    }
+
+    private void playVehicleSound(SoundEvent sound) {
+        level().playSound(null, getX(), getY(), getZ(), sound, SoundSource.NEUTRAL, 1.0f, 1.0f);
         gameEvent(GameEvent.BLOCK_CHANGE);
-        return true;
+    }
+
+    private void tellRiders(String key, Object... args) {
+        for (Entity rider : getPassengers()) {
+            if (rider instanceof Player p) p.displayClientMessage(Component.translatable(key, args).withStyle(ChatFormatting.RED), true);
+        }
+    }
+
+    /** Takes {@code amount} off a part (fractions become a chance of a whole point) and reacts if it just broke. */
+    public void damagePart(Part part, double amount) {
+        int whole = (int) amount;
+        if (random.nextDouble() < amount - whole) whole++;
+        if (whole <= 0) return;
+        int before = condition(part), after = Math.max(0, before - whole);
+        setCondition(part, after);
+        if (!Part.failed(before) && Part.failed(after)) {
+            tellRiders("message.interceptors.part_failed", Component.translatable("part.interceptors." + part.id()));
+            playVehicleSound(SoundEvents.ITEM_BREAK);
+            if (part == Part.HYDRAULICS && (isAnchored() || getDeploy() > 0)) {
+                // Hydraulic pressure gone: the spikes and skirts pop back up.
+                setAnchored(false);
+                entityData.set(DEPLOY, -RETRACT_TICKS);
+            }
+        } else if (!Part.warning(before) && Part.warning(after)) {
+            tellRiders("message.interceptors.part_warning", Component.translatable("part.interceptors." + part.id()));
+        }
+    }
+
+    /** Fixes the worst part by half. Returns the part fixed, or null if nothing needed it. */
+    @Nullable
+    public Part repairWorstPart() {
+        Part worst = null;
+        for (Part p : Part.values()) if (condition(p) < 100 && (worst == null || condition(p) < condition(worst))) worst = p;
+        if (worst == null) return null;
+        setCondition(worst, condition(worst) + 50);
+        if (worst == Part.COMPUTER && !failed(Part.COMPUTER)) entityData.set(FROZEN, false);
+        return worst;
     }
 
     public void honk() {
@@ -136,6 +325,20 @@ public class InterceptorVehicle extends Entity {
     @Override
     public InteractionResult interact(Player player, InteractionHand hand) {
         ItemStack stack = player.getItemInHand(hand);
+        if (stack.is(ModItems.REPAIR_KIT.get())) {
+            if (!level().isClientSide) {
+                Part fixed = repairWorstPart();
+                if (fixed == null) {
+                    player.displayClientMessage(Component.translatable("message.interceptors.nothing_to_fix"), true);
+                } else {
+                    if (!player.getAbilities().instabuild) stack.shrink(1);
+                    player.displayClientMessage(Component.translatable("message.interceptors.repaired",
+                            Component.translatable("part.interceptors." + fixed.id()), condition(fixed)).withStyle(ChatFormatting.GREEN), true);
+                    level().playSound(null, getX(), getY(), getZ(), SoundEvents.SMITHING_TABLE_USE, SoundSource.NEUTRAL, 0.8f, 1.2f);
+                }
+            }
+            return InteractionResult.sidedSuccess(level().isClientSide);
+        }
         if (stack.is(Items.IRON_INGOT) && getDamage() > 0) {
             if (!level().isClientSide) {
                 setDamage(getDamage() - spec.health() / 6f);
@@ -256,7 +459,9 @@ public class InterceptorVehicle extends Entity {
 
     @Override
     public void tick() {
+        groundSpeed = Math.sqrt((getX() - xo) * (getX() - xo) + (getZ() - zo) * (getZ() - zo));
         if (getHurtTime() > 0) entityData.set(HURT_TIME, getHurtTime() - 1);
+        if (!level().isClientSide) serverTick();
         super.tick();
         tickLerp();
         if (isControlledByLocalInstance()) {
@@ -268,18 +473,46 @@ public class InterceptorVehicle extends Entity {
         if (!level().isClientSide && tickCount % 10 == 0) stormDamage();
     }
 
+    private void serverTick() {
+        int d = getDeploy();
+        if (d > 0) {
+            entityData.set(DEPLOY, d - 1);
+            if (d == 1) setAnchored(true);
+        } else if (d < 0) {
+            entityData.set(DEPLOY, d + 1);
+        }
+        int reboot = getReboot();
+        if (reboot > 0) {
+            entityData.set(REBOOT, reboot - 1);
+            if (reboot == 1) {
+                entityData.set(FROZEN, false);
+                tellRiders("message.interceptors.rebooted");
+            }
+        }
+        if (spec.solar() && tickCount % 20 == 0) {
+            float battery = getBattery();
+            if (isVehicle()) battery -= DRAIN_PER_TICK * 20;
+            if (level().isDay() && level().canSeeSky(BlockPos.containing(getX(), getY() + spec.height(), getZ()))) battery += CHARGE_PER_TICK * 20;
+            setBattery(battery);
+        }
+    }
+
     /** One tick of driving plus wind. {@code forward} and {@code left} are the driver's keys, -1..1. */
     public void simulate(float forward, float left) {
         deltaRotation = 0;
-        if (isAnchored()) {
+        if (isAnchored() || getDeploy() != 0) {
             speed = 0;
         } else {
+            int engine = condition(Part.ENGINE);
+            if (Part.failed(engine)) forward = Math.min(forward, 0) * 0.3f; // stalled: you can only roll and brake
+            else if (Part.warning(engine) && random.nextFloat() < 0.03f) speed *= 0.6f; // sputter
+            float top = spec.maxSpeed() * (failed(Part.TIRES) ? 0.4f : Part.warning(condition(Part.TIRES)) ? 0.8f : 1f);
             if (forward > 0) speed += spec.accel() * forward;
             else if (forward < 0) speed += (speed > 0 ? spec.accel() * 2.5f : spec.accel() * 0.6f) * forward;
             else speed *= 0.97f;
             if (!onGround()) speed *= 0.995f;
             if (horizontalCollision) speed *= 0.6f;
-            speed = Mth.clamp(speed, -spec.maxSpeed() * 0.35f, spec.maxSpeed());
+            speed = Mth.clamp(speed, -top * 0.35f, top);
             if (Math.abs(speed) < 0.002f && forward == 0) speed = 0;
             if (onGround() && Math.abs(speed) > 0.01f) {
                 float grip = Mth.clamp(Math.abs(speed) / 0.25f, 0.25f, 1f);
@@ -303,11 +536,40 @@ public class InterceptorVehicle extends Entity {
     private void stormDamage() {
         Vec3 wind = forcedWind != null ? forcedWind : Storms.windAt(level(), position().add(0, spec.height() / 2, 0));
         if (!isControlledByLocalInstance()) lastWind = wind;
-        float perSecond = WindPhysics.damagePerSecond(spec, wind.horizontalDistance());
+        double mph = wind.horizontalDistance();
+        stormWear(mph);
+        if (failed(Part.WINDOWS) && mph > 80) {
+            // Busted windows: wind and debris come straight in.
+            for (Entity rider : getPassengers()) rider.hurt(damageSources().generic(), 1.0f);
+        }
+        float perSecond = WindPhysics.damagePerSecond(spec, mph);
         if (perSecond <= 0) return;
         setDamage(getDamage() + perSecond / 2);
         entityData.set(HURT_TIME, 6);
         if (getDamage() >= spec.health()) wreck();
+    }
+
+    /** Strong wind and hail wear the parts down, and can freeze the anchor computer. Runs twice a second. */
+    private void stormWear(double mph) {
+        if (!InterceptorsConfig.get(InterceptorsConfig.FAILURES)) return;
+        double rate = InterceptorsConfig.get(InterceptorsConfig.WEAR_RATE);
+        double stress = (mph - spec.ratedWind() * 0.6) / spec.ratedWind();
+        if (stress > 0) {
+            for (Part part : Part.values()) {
+                double wear = random.nextDouble() * stress * 6 * rate * part.stormWear();
+                if (part == Part.HYDRAULICS && isAnchored()) wear *= 1.5;
+                damagePart(part, wear);
+            }
+        }
+        float hail = forcedWind != null ? 0 : Storms.hailAt(level(), position().add(0, spec.height(), 0));
+        if (hail > 0.1f) damagePart(Part.WINDOWS, hail * 4 * rate * random.nextDouble());
+
+        double freezeRate = InterceptorsConfig.get(InterceptorsConfig.FREEZE_RATE);
+        if (!isFrozen() && spec.hasAnchors() && freezeRate > 0 && mph > spec.ratedWind() * 0.4) {
+            double chance = 0.004 * freezeRate * spec.freezeRisk() * (1 + Math.max(stress, 0) * 4)
+                    * (Part.warning(condition(Part.COMPUTER)) ? 2 : 1);
+            if (random.nextDouble() < chance) freeze();
+        }
     }
 
     @Override

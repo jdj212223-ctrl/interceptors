@@ -36,6 +36,16 @@ public final class Storms {
         }
     }
 
+    /** Hail intensity at a spot, 0..1. */
+    public static float hailAt(Level level, Vec3 pos) {
+        try {
+            WeatherHandler handler = handler(level);
+            return handler == null ? 0 : handler.getHail(pos);
+        } catch (Throwable t) {
+            return 0;
+        }
+    }
+
     /**
      * One storm as seen from where you're standing.
      *

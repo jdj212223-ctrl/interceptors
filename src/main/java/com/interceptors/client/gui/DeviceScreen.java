@@ -1,6 +1,7 @@
 package com.interceptors.client.gui;
 
 import com.interceptors.client.gui.apps.App;
+import com.interceptors.client.Keys;
 import com.interceptors.client.gui.apps.Apps;
 import com.interceptors.device.Device;
 import com.interceptors.vehicle.InterceptorVehicle;
@@ -115,6 +116,11 @@ public class DeviceScreen extends Screen {
         g.fill(sx, sy, sx + sw, sy + sh, 0xFF0A0D12);
 
         App app = apps.get(current);
+        InterceptorVehicle v = vehicle();
+        if (device == Device.CAR_DISPLAY && v != null && !v.screensWork()) {
+            drawDead(g, v);
+            return;
+        }
         g.enableScissor(appX(), appY(), appX() + appW(), appY() + appH());
         app.render(g, this, appX(), appY(), appW(), appH(), mouseX, mouseY, partialTick);
         g.disableScissor();
@@ -161,6 +167,30 @@ public class DeviceScreen extends Screen {
                     g.fill(sx + sw + 12, sy + 8 + i * 22, sx + sw + 24, sy + 22 + i * 22, 0xFF34373C);
                 }
             }
+        }
+    }
+
+    /** A frozen, rebooting or out-of-battery car display. */
+    private void drawDead(GuiGraphics g, InterceptorVehicle v) {
+        String key;
+        if (v.getReboot() > 0) key = "device.interceptors.rebooting";
+        else if (v.spec().solar() && v.getBattery() <= 0) key = "device.interceptors.battery_dead";
+        else if (v.failed(com.interceptors.vehicle.Part.COMPUTER)) key = "device.interceptors.dead";
+        else key = "device.interceptors.frozen";
+        if (key.endsWith("frozen")) {
+            // The last frame stays stuck on screen with a hang message over it.
+            for (int i = 0; i < 6; i++) g.fill(sx, sy + i * sh / 6, sx + sw, sy + i * sh / 6 + 2, 0x4030E0FF);
+        }
+        Component msg = Component.translatable(key, Keys.ANCHORS.getTranslatedKeyMessage());
+        int y = sy + sh / 2 - 10;
+        for (var line : font.split(msg, sw - 20)) {
+            g.drawString(font, line, sx + sw / 2 - font.width(line) / 2, y, 0x30E0FF, false);
+            y += 10;
+        }
+        if (v.getReboot() > 0) {
+            float p = 1 - v.getReboot() / (float) InterceptorVehicle.REBOOT_TICKS;
+            g.fill(sx + sw / 4, y + 6, sx + sw * 3 / 4, y + 10, 0xFF303030);
+            g.fill(sx + sw / 4, y + 6, sx + sw / 4 + (int) (sw / 2 * p), y + 10, 0xFF30A0FF);
         }
     }
 

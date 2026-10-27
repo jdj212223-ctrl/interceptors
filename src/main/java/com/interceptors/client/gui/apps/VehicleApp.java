@@ -1,10 +1,10 @@
 package com.interceptors.client.gui.apps;
 
-import com.interceptors.client.Keys;
 import com.interceptors.client.gui.DeviceScreen;
 import com.interceptors.client.gui.Draw;
 import com.interceptors.compat.Storms;
 import com.interceptors.vehicle.InterceptorVehicle;
+import com.interceptors.vehicle.Part;
 import com.interceptors.vehicle.WindPhysics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
@@ -54,14 +54,21 @@ public class VehicleApp implements App {
         g.fill(tx + 70, line + 2, tx + 150, line + 6, 0xFF303030);
         g.fill(tx + 70, line + 2, tx + 70 + (int) (80 * hp), line + 6, hp > 0.5f ? 0xFF40D060 : hp > 0.25f ? 0xFFE0B020 : 0xFFE03030);
         line += 12;
-        Component anchors = v.isAnchored() ? Component.translatable("app.interceptors.vehicle.anchored", v.spec().anchorKind())
-                : Component.translatable("app.interceptors.vehicle.not_anchored", Keys.ANCHORS.getTranslatedKeyMessage());
-        g.drawString(font, anchors, tx, line, v.isAnchored() ? 0xFF8040 : 0x9AA0A6, false);
-        line += 12;
         double wind = v.lastWind().horizontalDistance();
         double hold = WindPhysics.hold(v.spec(), v.isAnchored());
         g.drawString(font, Component.translatable("app.interceptors.vehicle.wind", (int) wind, (int) hold), tx, line,
                 wind > hold ? 0xFF4040 : wind > hold * 0.7 ? 0xFFC040 : 0xC0C8D0, false);
+        line += 12;
+        StringBuilder parts = new StringBuilder();
+        for (Part p : Part.values()) {
+            int c = v.condition(p);
+            if (parts.length() > 0) parts.append("  ");
+            parts.append(Component.translatable("part.interceptors." + p.id()).getString().charAt(0)).append(' ').append(c).append('%');
+        }
+        g.drawString(font, Component.translatable("app.interceptors.vehicle.parts", parts.toString()), tx, line, 0xA0A8B0, false);
+        line += 12;
+        g.drawString(font, Component.translatable("app.interceptors.vehicle.anchors", Component.translatable(v.anchorStatus().key()), v.spec().anchorKind()),
+                tx, line, v.anchorStatus().color(), false);
         line += 12;
         if (wind > v.spec().ratedWind()) {
             g.drawString(font, Component.translatable("app.interceptors.vehicle.damage"), tx, line, 0xFF4040, true);

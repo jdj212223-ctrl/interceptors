@@ -16,5 +16,8 @@ public final class Keys {
     public static final KeyMapping DISPLAY = new KeyMapping("key.interceptors.display", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_Y, CATEGORY);
 
+    public static final KeyMapping LIGHTS = new KeyMapping("key.interceptors.lights", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_U, CATEGORY);
+
     private Keys() {}
 }

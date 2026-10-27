@@ -15,12 +15,27 @@ import net.neoforged.neoforge.network.PacketDistributor;
 public final class ClientEvents {
     private ClientEvents() {}
 
+    /** How long the anchor key has been held while the computer is frozen. */
+    private static int rebootHold;
+    public static final int REBOOT_HOLD_TICKS = 40;
+
+    public static float rebootHoldProgress() {
+        return Math.min(1, rebootHold / (float) REBOOT_HOLD_TICKS);
+    }
+
     @SubscribeEvent
     public static void tick(ClientTickEvent.Post e) {
         Minecraft mc = Minecraft.getInstance();
         boolean inVehicle = mc.player != null && mc.player.getVehicle() instanceof InterceptorVehicle;
+        // Frozen computer: hold the anchor key for two seconds to reboot it.
+        if (inVehicle && mc.player.getVehicle() instanceof InterceptorVehicle v && v.isFrozen() && v.getReboot() == 0 && Keys.ANCHORS.isDown()) {
+            if (++rebootHold == REBOOT_HOLD_TICKS) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.REBOOT));
+        } else {
+            rebootHold = 0;
+        }
         while (Keys.ANCHORS.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.ANCHORS));
         while (Keys.HORN.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.HORN));
+        while (Keys.LIGHTS.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.LIGHTS));
         while (Keys.DISPLAY.consumeClick()) if (inVehicle) Device.CAR_DISPLAY.open();
     }
 }

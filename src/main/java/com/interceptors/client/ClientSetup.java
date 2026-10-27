@@ -37,6 +37,7 @@ public final class ClientSetup {
         e.register(Keys.ANCHORS);
         e.register(Keys.HORN);
         e.register(Keys.DISPLAY);
+        e.register(Keys.LIGHTS);
     }
 
     @SubscribeEvent

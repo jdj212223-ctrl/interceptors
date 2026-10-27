@@ -1,5 +1,6 @@
 package com.interceptors;
 
+import com.interceptors.config.InterceptorsConfig;
 import com.interceptors.registry.ModBlocks;
 import com.interceptors.registry.ModCreativeTabs;
 import com.interceptors.registry.ModEntities;
@@ -10,6 +11,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.ModContainer;
 import net.neoforged.fml.common.Mod;
+import net.neoforged.fml.config.ModConfig;
 import org.slf4j.Logger;
 
 @Mod(Interceptors.MODID)
@@ -23,6 +25,7 @@ public class Interceptors {
         ModItems.ITEMS.register(modBus);
         ModSounds.SOUNDS.register(modBus);
         ModCreativeTabs.TABS.register(modBus);
+        container.registerConfig(ModConfig.Type.SERVER, InterceptorsConfig.SPEC);
     }
 
     public static ResourceLocation id(String path) {

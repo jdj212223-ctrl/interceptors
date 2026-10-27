@@ -2,6 +2,7 @@ package com.interceptors.network;
 
 import com.interceptors.Interceptors;
 import com.interceptors.vehicle.InterceptorVehicle;
+import net.minecraft.ChatFormatting;
 import net.minecraft.network.chat.Component;
 import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.SubscribeEvent;
@@ -21,12 +22,16 @@ public final class ModNetwork {
         }));
     }
 
+    private static void say(ServerPlayer player, String key) {
+        if (key != null) player.displayClientMessage(Component.translatable(key).withStyle(ChatFormatting.GOLD), true);
+    }
+
     private static void handle(ServerPlayer player, InterceptorVehicle vehicle, int action) {
         switch (action) {
-            case VehicleActionPayload.ANCHORS -> {
-                if (!vehicle.toggleAnchors()) player.displayClientMessage(Component.translatable("message.interceptors.stop_first"), true);
-            }
+            case VehicleActionPayload.ANCHORS -> say(player, vehicle.toggleAnchors());
+            case VehicleActionPayload.REBOOT -> say(player, vehicle.reboot());
             case VehicleActionPayload.HORN -> vehicle.honk();
+            case VehicleActionPayload.LIGHTS -> vehicle.toggleLights();
             default -> {}
         }
     }

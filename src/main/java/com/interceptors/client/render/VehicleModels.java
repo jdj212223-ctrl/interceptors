@@ -15,9 +15,9 @@ import java.util.Map;
 public final class VehicleModels {
     /** Fullbright. */
     public static final int GLOW = 1;
-    /** Only drawn with the anchors down. */
+    /** Anchor hardware: slides down out of the body as the anchors deploy. */
     public static final int ANCHOR = 2;
-    /** Colour-cycling gaming lights. */
+    /** Colour-cycling gaming lights, switched with the lights key. */
     public static final int RGB = 4;
     /** See-through window glass. */
     public static final int CLEAR = 8;
@@ -41,6 +41,7 @@ public final class VehicleModels {
         MODELS.put("dominator_3", dominator3());
         MODELS.put("tiv_1", tiv1());
         MODELS.put("doppler_on_wheels", dopplerOnWheels());
+        MODELS.put("rental_car", rentalCar());
     }
 
     public static List<Box> get(String id) {
@@ -111,18 +112,51 @@ public final class VehicleModels {
         }
     }
 
-    /** Frantic Dan-style white high-roof camper van with the gaming rig glow. */
+    /**
+     * Frantic Dan-style white high-roof camper van. The camper box is hollow so you can see the conversion from
+     * the back seats: wood paneling, gaming desk with a big monitor and RGB tower, sofa bed, kitchenette and fridge.
+     */
     private static List<Box> gamingVan() {
+        int wood = 0xA8784A, darkWood = 0x6E4A2C, vinyl = 0x8A8D90, cushion = 0x3A4A6A;
         return new Builder()
                 .box(-1.05, 0.45, -2.6, 1.05, 1.15, 1.75, WHITE)
                 .box(-1.0, 0.45, 1.75, 1.0, 1.1, 2.7, WHITE)
-                .box(-1.05, 1.15, -2.6, 1.05, 2.6, 0.3, WHITE)
+                // camper box: thin walls, roof and back door, so the inside is a room
+                .pair(1.0, 1.15, -2.6, 1.05, 2.6, 0.3, WHITE)
+                .box(-1.05, 2.55, -2.6, 1.05, 2.6, 0.3, WHITE)
+                .box(-1.05, 1.15, -2.6, 1.05, 2.55, -2.55, WHITE)
                 .cab(1.0, 1.15, 2.15, 0.3, 1.75, WHITE)
                 .box(-1.0, 2.27, 0.3, 1.0, 2.6, 1.35, WHITE)
-                // camper windows, rear door windows, sliding door seam
+                // inside: vinyl floor, wood walls and ceiling
+                .box(-1.0, 1.15, -2.55, 1.0, 1.17, 0.3, vinyl)
+                .pair(0.97, 1.17, -2.55, 1.0, 2.52, 0.3, wood)
+                .box(-1.0, 2.52, -2.55, 1.0, 2.55, 0.3, wood)
+                .box(-1.0, 1.17, -2.55, 1.0, 2.52, -2.52, wood)
+                // sofa bed across the back
+                .box(-0.95, 1.17, -2.5, 0.95, 1.45, -1.85, cushion)
+                .box(-0.95, 1.45, -2.52, 0.95, 1.95, -2.32, cushion)
+                // gaming desk on the passenger wall: desk, big monitor, RGB tower, chair
+                .box(-0.97, 1.72, -1.65, -0.45, 1.77, -0.45, darkWood)
+                .box(-0.95, 1.17, -1.6, -0.9, 1.72, -1.55, darkWood)
+                .box(-0.95, 1.17, -0.55, -0.9, 1.72, -0.5, darkWood)
+                .box(-0.97, 1.85, -1.55, -0.92, 2.35, -0.55, BLACK)
+                .box(-0.92, 1.88, -1.52, -0.91, 2.32, -0.58, 0x2E7BFF, GLOW)
+                .box(-0.96, 1.17, -0.42, -0.66, 1.68, -0.12, BLACK)
+                .box(-0.66, 1.2, -0.4, -0.65, 1.65, -0.38, 0xFF3080, GLOW | RGB)
+                .box(-0.55, 1.17, -1.2, -0.3, 1.5, -0.9, 0x202020)
+                // headphones and mic arm on the desk
+                .box(-0.85, 1.77, -0.7, -0.7, 1.8, -0.6, 0x101010)
+                .box(-0.95, 1.77, -1.62, -0.93, 2.05, -1.6, STEEL)
+                // kitchenette and mini fridge on the driver's wall, plus storage drawers
+                .box(0.6, 1.17, -1.8, 0.97, 1.7, -0.95, wood)
+                .box(0.65, 1.7, -1.6, 0.85, 1.72, -1.3, STEEL)
+                .box(0.6, 1.17, -0.9, 0.97, 1.85, -0.45, 0xDDE1E4)
+                .box(0.59, 1.75, -0.85, 0.6, 1.8, -0.5, STEEL)
+                .box(0.6, 2.2, -1.8, 0.97, 2.5, -0.45, wood)
+                // outside: camper windows, rear door windows, sliding door seam
                 .pair(1.05, 1.75, -2.0, 1.08, 2.25, -0.55, GLASS)
                 .pair(0.08, 1.7, -2.63, 0.8, 2.25, -2.6, GLASS)
-                .box(1.05, 0.55, -0.1, 1.07, 2.1, -0.06, STEEL)
+                .box(-1.05, 0.55, -0.1, -1.07, 2.1, -0.06, STEEL)
                 // bumpers, grille, lights, mirrors
                 .box(-1.08, 0.3, 2.7, 1.08, 0.6, 2.88, BLACK)
                 .box(-1.08, 0.3, -2.76, 1.08, 0.6, -2.6, BLACK)
@@ -133,16 +167,33 @@ public final class VehicleModels {
                 .box(-0.85, 2.6, -2.35, 0.85, 2.66, 0.95, SOLAR)
                 .pair(0.9, 2.6, -2.45, 0.96, 2.72, 1.05, BLACK)
                 .box(-0.7, 2.6, 1.1, 0.7, 2.78, 1.3, AMBER, GLOW)
-                // the gaming setup shows through: RGB underglow and a strip under the camper windows
-                .pair(1.05, 0.46, -2.5, 1.07, 0.54, 1.6, 0xB040FF, GLOW | RGB)
+                // underglow and the strip under the camper windows (U toggles them)
+                .pair(1.05, 0.46, -2.5, 1.07, 0.54, 1.6, 0x2080FF, GLOW | RGB)
                 .pair(1.05, 1.68, -2.0, 1.07, 1.72, -0.55, 0x30E0FF, GLOW | RGB)
-                .box(-1.0, 0.25, -2.4, 1.0, 0.3, 2.4, 0x7020FF, GLOW | RGB)
+                .box(-1.0, 0.25, -2.4, 1.0, 0.3, 2.4, 0x2060FF, GLOW | RGB)
                 .wheels(1.05, 0.38, 1.95, -1.75)
                 // leveling jacks
                 .pair(0.7, -0.05, 2.1, 0.88, 0.45, 2.28, STEEL, ANCHOR)
                 .pair(0.7, -0.05, -2.4, 0.88, 0.45, -2.22, STEEL, ANCHOR)
                 .pair(0.6, -0.08, 2.0, 0.98, -0.02, 2.38, BLACK, ANCHOR)
                 .pair(0.6, -0.08, -2.5, 0.98, -0.02, -2.12, BLACK, ANCHOR)
+                .build();
+    }
+
+    /** A plain silver rental sedan, for when the interceptor is out of action. */
+    private static List<Box> rentalCar() {
+        int silver = 0xB8BEC6;
+        return new Builder()
+                .box(-0.95, 0.35, -2.2, 0.95, 1.0, 2.1, silver)
+                .box(-0.92, 1.0, -2.2, 0.92, 1.1, -1.25, silver)
+                .cab(0.92, 1.0, 1.65, -1.25, 0.75, silver)
+                .box(-0.97, 0.3, 2.1, 0.97, 0.55, 2.22, 0x2A2C30)
+                .box(-0.97, 0.3, -2.3, 0.97, 0.55, -2.2, 0x2A2C30)
+                .box(-0.5, 0.6, 2.1, 0.5, 0.85, 2.13, BLACK)
+                .lights(0.95, 0.65, 2.1, -2.2)
+                .pair(0.92, 1.1, 0.55, 1.12, 1.25, 0.65, silver)
+                .box(-0.3, 0.75, -2.23, 0.3, 0.9, -2.21, 0xF2E6A0)
+                .wheels(0.95, 0.32, 1.4, -1.4)
                 .build();
     }
 

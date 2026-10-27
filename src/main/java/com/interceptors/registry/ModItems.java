@@ -21,6 +21,7 @@ public final class ModItems {
     public static final DeferredItem<BlockItem> COMPUTER = ITEMS.registerSimpleBlockItem(ModBlocks.COMPUTER);
     public static final DeferredItem<BlockItem> LAPTOP = ITEMS.registerSimpleBlockItem(ModBlocks.LAPTOP);
     public static final DeferredItem<DeviceItem> MACBOOK = ITEMS.register("macbook", () -> new DeviceItem(Device.MACBOOK, new Item.Properties().stacksTo(1)));
+    public static final DeferredItem<Item> REPAIR_KIT = ITEMS.register("repair_kit", () -> new Item(new Item.Properties().stacksTo(16)));
     public static final DeferredItem<DeviceItem> IPAD = ITEMS.register("ipad", () -> new DeviceItem(Device.IPAD, new Item.Properties().stacksTo(1)));
 
     static {

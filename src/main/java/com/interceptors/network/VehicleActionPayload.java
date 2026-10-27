@@ -8,7 +8,7 @@ import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 
 /** A vehicle key the rider pressed. */
 public record VehicleActionPayload(int action) implements CustomPacketPayload {
-    public static final int ANCHORS = 0, HORN = 1;
+    public static final int ANCHORS = 0, HORN = 1, REBOOT = 2, LIGHTS = 3;
     public static final Type<VehicleActionPayload> TYPE = new Type<>(Interceptors.id("vehicle_action"));
     public static final StreamCodec<ByteBuf, VehicleActionPayload> CODEC = ByteBufCodecs.VAR_INT.map(VehicleActionPayload::new, VehicleActionPayload::action);
 

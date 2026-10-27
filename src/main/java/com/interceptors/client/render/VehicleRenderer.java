@@ -5,11 +5,14 @@ import com.interceptors.vehicle.InterceptorVehicle;
 import com.mojang.blaze3d.vertex.PoseStack;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import com.mojang.math.Axis;
+import net.minecraft.ChatFormatting;
+import net.minecraft.client.gui.Font;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.entity.EntityRendererProvider;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.texture.OverlayTexture;
+import net.minecraft.network.chat.Component;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.Mth;
 
@@ -32,6 +35,8 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         if (hurt > 0) pose.mulPose(Axis.ZP.rotationDegrees(Mth.sin(hurt) * hurt * 0.25f));
 
         boolean anchored = vehicle.isAnchored();
+        float extension = vehicle.anchorExtension();
+        boolean lights = vehicle.lightsOn();
         float time = vehicle.tickCount + partialTick;
         List<VehicleModels.Box> boxes = VehicleModels.get(vehicle.spec().id());
         VehicleModels.Box pivot = boxes.stream().filter(b -> (b.flags() & VehicleModels.SPIN) != 0).findFirst().orElse(null);
@@ -41,9 +46,12 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
             for (VehicleModels.Box b : boxes) {
                 int f = b.flags();
                 if ((f & VehicleModels.CLEAR) != 0 != (pass == 1)) continue;
-                if ((f & VehicleModels.ANCHOR) != 0 && !anchored) continue;
+                if ((f & VehicleModels.ANCHOR) != 0 && extension <= 0) continue;
+                if ((f & VehicleModels.RGB) != 0 && !lights) continue;
                 pose.pushPose();
-                if ((f & VehicleModels.SKIRT) != 0) pose.translate(0, anchored ? -0.12 : 0.15, 0);
+                // Spikes and jacks start tucked up in the body and slide down as they deploy.
+                if ((f & VehicleModels.ANCHOR) != 0) pose.translate(0, (1 - extension) * 0.55f, 0);
+                if ((f & VehicleModels.SKIRT) != 0) pose.translate(0, 0.15f - 0.27f * extension, 0);
                 if ((f & VehicleModels.SPIN) != 0 && pivot != null) {
                     float px = (pivot.x0() + pivot.x1()) / 2, pz = (pivot.z0() + pivot.z1()) / 2;
                     pose.translate(px, 0, pz);
@@ -55,8 +63,26 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                 pose.popPose();
             }
         }
+        if (vehicle.spec().id().equals("gaming_van")) subscribe(pose, buffers, light);
         pose.popPose();
         super.render(vehicle, yaw, partialTick, pose, buffers, light);
+    }
+
+    private static final Component SUBSCRIBE = Component.literal("SUBSCRIBE").withStyle(ChatFormatting.BOLD);
+
+    /** Big red graffiti-style lettering down both sides of the camper, like on Frantic Dan's channel banner. */
+    private void subscribe(PoseStack pose, MultiBufferSource buffers, int light) {
+        Font font = getFont();
+        float scale = 0.032f;
+        for (int side : new int[]{1, -1}) {
+            pose.pushPose();
+            pose.translate(side * 1.081, 1.58, -1.25);
+            pose.mulPose(Axis.YP.rotationDegrees(side * 90));
+            pose.scale(scale, -scale, scale);
+            font.drawInBatch(SUBSCRIBE, -font.width(SUBSCRIBE) / 2f, 0, 0xE01818, false, pose.last().pose(), buffers,
+                    Font.DisplayMode.POLYGON_OFFSET, 0, light);
+            pose.popPose();
+        }
     }
 
     /** Gaming-rig colour cycle, offset per strip by its base colour so they don't all match. */

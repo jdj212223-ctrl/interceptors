@@ -4,7 +4,9 @@ import com.interceptors.Interceptors;
 import com.interceptors.client.render.VehicleModels;
 import com.interceptors.compat.Storms;
 import com.interceptors.registry.ModEntities;
+import com.interceptors.vehicle.AnchorStatus;
 import com.interceptors.vehicle.InterceptorVehicle;
+import com.interceptors.vehicle.Part;
 import com.interceptors.vehicle.VehicleSpec;
 import com.interceptors.vehicle.WindPhysics;
 import net.minecraft.core.BlockPos;
@@ -48,6 +50,7 @@ public class InterceptorsGameTests {
     @GameTest(template = "pad")
     public static void anchorsHoldWhatTiresCannot(GameTestHelper helper) {
         for (VehicleSpec spec : VehicleSpec.ALL) {
+            if (!spec.hasAnchors()) continue;
             helper.assertTrue(spec.anchorHold() > spec.grip(), spec.id() + " anchors are weaker than its tires");
             Vec3 wind = new Vec3(0, 0, (spec.grip() + spec.anchorHold()) / 2);
             helper.assertTrue(WindPhysics.push(spec, true, wind).equals(Vec3.ZERO), spec.id() + " slid with anchors down");
@@ -129,10 +132,111 @@ public class InterceptorsGameTests {
         InterceptorVehicle van = park(helper, VehicleSpec.GAMING_VAN);
         van.setAnchored(true);
         van.setDamage(17);
+        van.setCondition(Part.TIRES, 33);
+        van.setBattery(42);
+        van.freeze();
+        van.toggleLights();
         CompoundTag tag = van.saveWithoutId(new CompoundTag());
         InterceptorVehicle copy = ModEntities.vehicle(VehicleSpec.GAMING_VAN).create(helper.getLevel());
         copy.load(tag);
         helper.assertTrue(copy.isAnchored() && copy.getDamage() == 17, "lost state: anchored " + copy.isAnchored() + " damage " + copy.getDamage());
+        helper.assertTrue(copy.condition(Part.TIRES) == 33 && copy.condition(Part.ENGINE) == 100, "lost part conditions");
+        helper.assertTrue(copy.isFrozen() && copy.getBattery() == 42 && !copy.lightsOn(), "lost frozen/battery/lights");
+        helper.succeed();
+    }
+
+    @GameTest(template = "pad", timeoutTicks = 100)
+    public static void anchorsTakeTimeToDeploy(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        helper.assertTrue(dom.anchorStatus() == AnchorStatus.READY, "parked Dom 3 isn't READY: " + dom.anchorStatus());
+        helper.assertTrue(dom.toggleAnchors() == null, "couldn't start dropping anchors");
+        helper.assertTrue(dom.anchorStatus() == AnchorStatus.DEPLOYING && !dom.isAnchored(), "anchors snapped down instantly");
+        helper.runAfterDelay(VehicleSpec.DOMINATOR_3.deployTicks() + 2, () -> {
+            helper.assertTrue(dom.isAnchored() && dom.anchorStatus() == AnchorStatus.ANCHORED, "anchors never finished: " + dom.anchorStatus());
+            helper.assertTrue(dom.toggleAnchors() == null && !dom.isAnchored(), "couldn't raise anchors");
+            helper.assertTrue(dom.anchorStatus() == AnchorStatus.RETRACTING, "not retracting: " + dom.anchorStatus());
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "pad", timeoutTicks = 160)
+    public static void frozenComputerBlocksAnchorsUntilRebooted(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        dom.freeze();
+        helper.assertTrue(dom.anchorStatus() == AnchorStatus.FROZEN && !dom.screensWork(), "freeze didn't show");
+        helper.assertTrue("message.interceptors.frozen".equals(dom.toggleAnchors()), "anchors moved with a frozen computer");
+        dom.reboot();
+        helper.assertTrue(dom.anchorStatus() == AnchorStatus.REBOOTING, "not rebooting: " + dom.anchorStatus());
+        helper.runAfterDelay(InterceptorVehicle.REBOOT_TICKS + 2, () -> {
+            helper.assertTrue(!dom.isFrozen() && dom.screensWork(), "still frozen after the reboot");
+            helper.assertTrue(dom.toggleAnchors() == null, "anchors still blocked after the reboot");
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "pad")
+    public static void brokenHydraulicsDropTheAnchors(GameTestHelper helper) {
+        InterceptorVehicle van = park(helper, VehicleSpec.GAMING_VAN);
+        van.setAnchored(true);
+        van.damagePart(Part.HYDRAULICS, 100);
+        helper.assertTrue(!van.isAnchored() && van.anchorExtension() > 0, "anchors didn't start popping up");
+        helper.assertTrue(van.anchorStatus() == AnchorStatus.FAILED, "status isn't FAILED: " + van.anchorStatus());
+        helper.runAfterDelay(InterceptorVehicle.RETRACT_TICKS + 1, () -> {
+            helper.assertTrue("message.interceptors.hydraulics_failed".equals(van.toggleAnchors()), "anchors deployed on dead hydraulics");
+            helper.assertTrue(van.repairWorstPart() == Part.HYDRAULICS && !van.failed(Part.HYDRAULICS), "repair kit didn't fix the hydraulics");
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "pad", timeoutTicks = 120)
+    public static void tornadoWearsPartsDown(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        dom.setAnchored(true);
+        dom.forcedWind = new Vec3(0, 0, 200);
+        helper.runAfterDelay(100, () -> {
+            int worn = 0;
+            for (Part p : Part.values()) if (dom.condition(p) < 100) worn++;
+            helper.assertTrue(worn >= 3, "a 200 mph tornado barely touched the parts: " + worn + " worn");
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "pad")
+    public static void flatTireCrawls(GameTestHelper helper) {
+        InterceptorVehicle van = park(helper, VehicleSpec.GAMING_VAN);
+        van.setCondition(Part.TIRES, 0);
+        for (int i = 0; i < 80; i++) van.simulate(1, 0);
+        helper.assertTrue(van.getSpeed() <= VehicleSpec.GAMING_VAN.maxSpeed() * 0.4f + 1e-4, "flat tire still does " + van.getSpeed());
+        helper.succeed();
+    }
+
+    @GameTest(template = "pad")
+    public static void stalledEngineWontDrive(GameTestHelper helper) {
+        InterceptorVehicle van = park(helper, VehicleSpec.GAMING_VAN);
+        van.setCondition(Part.ENGINE, 0);
+        for (int i = 0; i < 40; i++) van.simulate(1, 0);
+        helper.assertTrue(van.getSpeed() <= 0, "stalled engine accelerated to " + van.getSpeed());
+        helper.succeed();
+    }
+
+    @GameTest(template = "pad")
+    public static void rentalCarHasNoAnchors(GameTestHelper helper) {
+        InterceptorVehicle car = park(helper, VehicleSpec.RENTAL_CAR);
+        helper.assertTrue("message.interceptors.no_anchors".equals(car.toggleAnchors()), "rental car dropped anchors");
+        car.freeze();
+        helper.assertTrue(!car.isFrozen() && car.anchorStatus() == AnchorStatus.NONE, "rental car has an anchor computer");
+        helper.succeed();
+    }
+
+    @GameTest(template = "pad")
+    public static void deadBatteryKillsTheVanScreens(GameTestHelper helper) {
+        InterceptorVehicle van = park(helper, VehicleSpec.GAMING_VAN);
+        helper.assertTrue(van.screensWork(), "fresh van's screens are off");
+        van.setBattery(0);
+        helper.assertTrue(!van.screensWork(), "screens run on an empty battery");
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_1);
+        dom.setBattery(0);
+        helper.assertTrue(dom.screensWork(), "Dom 1 has no solar battery, so it shouldn't care");
         helper.succeed();
     }
 
