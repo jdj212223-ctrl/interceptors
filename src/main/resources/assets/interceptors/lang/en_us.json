@@ -86,8 +86,7 @@
   "app.interceptors.vehicle.drop_anchors": "Sliding! Stop and drop the anchors!",
   "app.interceptors.web": "Web",
   "app.interceptors.web.title": "Web Browser",
-  "app.interceptors.web.missing": "Real web pages (YouTube, radar sites, Frantic Dan's streams) need the optional MCEF mod, which runs a hidden Chrome browser. Install MCEF for NeoForge 1.21.1 and this app turns into a browser. Everything else on this device works without it.",
-  "app.interceptors.web.soon": "MCEF is installed! The browser is being set up.",
+  "app.interceptors.web.missing": "Real web pages (YouTube, radar sites, streams) need the optional MCEF mod, which runs a hidden Chrome browser. Install MCEF for NeoForge 1.21.1 and this app becomes a browser. Everything else on this device works without it.",
   "entity.interceptors.rental_car": "Rental Car",
   "item.interceptors.rental_car": "Rental Car",
   "tooltip.interceptors.rental_car": "Interceptor wrecked? Stranded? Rent a car and keep chasing. No armor, no anchors.",
@@ -167,5 +166,6 @@
   "death.attack.interceptors.hail": "%1$s was pummeled by baseball-size hail",
   "death.attack.interceptors.hail.player": "%1$s was pummeled by baseball-size hail while fleeing %2$s",
   "subtitles.interceptors.wind_roar": "Tornado roars",
-  "subtitles.interceptors.hail": "Hail hammers down"
+  "subtitles.interceptors.hail": "Hail hammers down",
+  "app.interceptors.web.starting": "Starting the browser (MCEF)... The first time can take a minute while it downloads Chromium."
 }

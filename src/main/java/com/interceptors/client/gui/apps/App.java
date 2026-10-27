@@ -24,6 +24,8 @@ public interface App {
         return false;
     }
 
+    default void mouseMoved(DeviceScreen screen, double mouseX, double mouseY) {}
+
     default boolean mouseReleased(DeviceScreen screen, double mouseX, double mouseY, int button) {
         return false;
     }

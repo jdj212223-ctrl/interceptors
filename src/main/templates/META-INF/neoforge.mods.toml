@@ -30,3 +30,11 @@ type="required"
 versionRange="[0.17.13,)"
 ordering="AFTER"
 side="BOTH"
+
+# A real web browser in the Web app (live radar sites, YouTube) when MCEF is installed.
+[[dependencies.${mod_id}]]
+modId="mcef"
+type="optional"
+versionRange="[2.1,)"
+ordering="NONE"
+side="CLIENT"

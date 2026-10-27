@@ -102,7 +102,12 @@ The computer and laptop blocks, the MacBook and iPad items, and the car display 
   arrives, and a banner from KEEP CHASING to YOU ARE IN THE TORNADO.
 - **Storms**: every storm, tornadoes first.
 - **Tornado Dodge**: a mini game (on computers, laptops, tablets and the van's car display).
-- **Web**: needs the optional MCEF mod for real web pages; without it, it tells you what to install.
+- **Web**: with the optional MCEF mod installed, a real web browser: back, forward, reload, home, an address bar
+  that also searches Google, quick links (YouTube, NWS radar, SPC), and mouse, scroll and keyboard straight
+  through to the page. Without MCEF it tells you what to install.
+
+Every app has a letter on its dock icon that is also its keyboard shortcut: **V**ehicle, **R**adar, **I**ntercept,
+**S**torms, **T**ornado Dodge, **W**eb (1-9 and Tab work too).
 
 While driving, the dashboard (top left) shows speed, armor, anchors, the wind where you are, and the nearest tornado:
 its EF rating, wind speed, distance and direction, and which way it's moving.

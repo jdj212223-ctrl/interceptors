@@ -286,7 +286,7 @@ public class DeviceScreen extends Screen {
             if (i == current) g.fill(ix - 2, iy - 2, ix + size + 2, iy + size + 2, 0xFF30E0FF);
             g.fill(ix, iy, ix + size, iy + size, 0xFF000000 | a.color());
             Component name = Component.translatable("app.interceptors." + a.id());
-            String letter = name.getString().substring(0, 1);
+            String letter = String.valueOf(shortcut(a));
             g.drawString(font, letter, ix + size / 2 - font.width(letter) / 2 + 1, iy + 5, 0xFFFFFF, true);
             if (mouseX >= ix && mouseX < ix + size && mouseY >= iy && mouseY < iy + size) hovered = name;
         }
@@ -294,6 +294,11 @@ public class DeviceScreen extends Screen {
     }
 
     // ------------------------------------------------------------------ input
+
+    /** The letter shown on an app's dock icon, which is also its keyboard shortcut. */
+    private static char shortcut(App app) {
+        return Component.translatable("app.interceptors." + app.id()).getString().charAt(0);
+    }
 
     private void switchTo(int index) {
         if (index == current || index < 0 || index >= apps.size()) return;
@@ -317,6 +322,11 @@ public class DeviceScreen extends Screen {
         }
         if (inApp(mouseX, mouseY) && apps.get(current).mouseClicked(this, mouseX, mouseY, button)) return true;
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public void mouseMoved(double mouseX, double mouseY) {
+        apps.get(current).mouseMoved(this, mouseX, mouseY);
     }
 
     @Override
@@ -344,6 +354,16 @@ public class DeviceScreen extends Screen {
         if (key >= GLFW.GLFW_KEY_1 && key <= GLFW.GLFW_KEY_9) {
             switchTo(key - GLFW.GLFW_KEY_1);
             return true;
+        }
+        // Letter shortcuts: each app's dock letter (V)ehicle, (R)adar, (I)ntercept, (S)torms, (T)ornado Dodge, (W)eb.
+        if (key >= GLFW.GLFW_KEY_A && key <= GLFW.GLFW_KEY_Z) {
+            char letter = (char) ('A' + key - GLFW.GLFW_KEY_A);
+            for (int i = 0; i < apps.size(); i++) {
+                if (Character.toUpperCase(shortcut(apps.get(i))) == letter) {
+                    switchTo(i);
+                    return true;
+                }
+            }
         }
         return super.keyPressed(key, scancode, modifiers);
     }
