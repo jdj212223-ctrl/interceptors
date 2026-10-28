@@ -22,5 +22,8 @@ public final class Keys {
     public static final KeyMapping BROADCAST = new KeyMapping("key.interceptors.broadcast", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_B, CATEGORY);
 
+    public static final KeyMapping LEXAN = new KeyMapping("key.interceptors.lexan", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, CATEGORY);
+
     private Keys() {}
 }

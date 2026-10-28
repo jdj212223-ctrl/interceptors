@@ -445,6 +445,39 @@ public class InterceptorsGameTests {
         helper.succeed();
     }
 
+    /** Aurora, 2009: an EF2+ passes over with the Lexan shield down, and the windows blow in on the front seats. */
+    @GameTest(template = "pad", timeoutTicks = 60)
+    public static void windowsBlowOutWithoutLexan(GameTestHelper helper) {
+        InterceptorVehicle open = park(helper, VehicleSpec.DOMINATOR_1);
+        net.minecraft.world.entity.npc.Villager driver = net.minecraft.world.entity.EntityType.VILLAGER.create(helper.getLevel());
+        driver.moveTo(open.position());
+        helper.getLevel().addFreshEntity(driver);
+        driver.startRiding(open, true);
+        float health = driver.getHealth();
+        open.setAnchored(true);
+        open.forcedWind = new Vec3(0, 0, 130);
+        helper.runAfterDelay(25, () -> {
+            helper.assertTrue(open.failed(Part.WINDOWS), "windows survived an EF2 with the Lexan down");
+            helper.assertTrue(driver.getHealth() < health, "flying glass didn't hurt the driver");
+            open.forcedWind = Vec3.ZERO;
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "pad", timeoutTicks = 60)
+    public static void lexanShieldSavesTheWindows(GameTestHelper helper) {
+        InterceptorVehicle shielded = park(helper, VehicleSpec.DOMINATOR_1);
+        helper.assertTrue(shielded.toggleLexan() == null && shielded.lexanUp(), "couldn't raise the Lexan");
+        shielded.setAnchored(true);
+        shielded.forcedWind = new Vec3(0, 0, 130);
+        helper.runAfterDelay(25, () -> {
+            helper.assertTrue(!shielded.failed(Part.WINDOWS), "windows blew out with the Lexan up");
+            helper.assertTrue("message.interceptors.no_lexan".equals(park(helper, VehicleSpec.GAMING_VAN).toggleLexan()), "the van shouldn't have Lexan");
+            shielded.forcedWind = Vec3.ZERO;
+            helper.succeed();
+        });
+    }
+
     @GameTest(template = "pad")
     public static void repairKitFullyFixesTheWorstPart(GameTestHelper helper) {
         InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);

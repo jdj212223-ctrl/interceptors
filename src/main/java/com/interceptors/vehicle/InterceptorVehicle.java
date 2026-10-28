@@ -59,6 +59,12 @@ public class InterceptorVehicle extends Entity {
     public static final float GRIME_WARN = 60, GRIME_JAM = 100;
     /** A satellite dish on the roof: the screens inside get online apps. */
     private static final EntityDataAccessor<Boolean> DISH = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.BOOLEAN);
+    /** The Lexan window shield is rolled up over the glass (armored vehicles only). */
+    private static final EntityDataAccessor<Boolean> LEXAN = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.BOOLEAN);
+    /** Wind (mph) that blows out unshielded windows: an EF2 passing over, like Dominator 1 at Aurora in 2009. */
+    public static final double SHATTER_MPH = 111;
+    public static final net.minecraft.resources.ResourceKey<net.minecraft.world.damagesource.DamageType> FLYING_GLASS =
+            net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DAMAGE_TYPE, com.interceptors.Interceptors.id("flying_glass"));
     /** Who sits where: "s0".."s4" hold the UUID of the rider in that seat. Seat 0 is the driver's. */
     private static final EntityDataAccessor<CompoundTag> SEATS = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.COMPOUND_TAG);
     /** Soft ground fills the hydraulics: full speed through mud jams them in about two minutes, rain doubles it. */
@@ -123,6 +129,46 @@ public class InterceptorVehicle extends Entity {
         builder.define(GRIME, 0f);
         builder.define(DISH, false);
         builder.define(SEATS, new CompoundTag());
+        builder.define(LEXAN, false);
+    }
+
+    public boolean lexanUp() {
+        return entityData.get(LEXAN);
+    }
+
+    public void setLexan(boolean up) {
+        entityData.set(LEXAN, up);
+    }
+
+    /** Roll the Lexan shield up or down. Returns null if it worked, or why not. */
+    @Nullable
+    public String toggleLexan() {
+        if (!spec.hasLexan()) return "message.interceptors.no_lexan";
+        setLexan(!lexanUp());
+        playVehicleSound(lexanUp() ? SoundEvents.IRON_DOOR_CLOSE : SoundEvents.IRON_DOOR_OPEN);
+        return null;
+    }
+
+    /**
+     * The windows blow out: glass everywhere, and the riders up front, next to the windshield and door glass,
+     * get cut by flying glass.
+     */
+    public void shatterWindows() {
+        if (failed(Part.WINDOWS)) return;
+        setCondition(Part.WINDOWS, 0);
+        level().playSound(null, getX(), getY() + 1.5, getZ(), SoundEvents.GLASS_BREAK, SoundSource.NEUTRAL, 2.0f, 0.8f);
+        if (level() instanceof ServerLevel server) {
+            server.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, net.minecraft.world.level.block.Blocks.GLASS.defaultBlockState()),
+                    getX(), getY() + spec.height() * 0.7, getZ(), 60, spec.width() / 3, 0.4, spec.width() / 3, 0.2);
+            for (int seat = 0; seat < 2; seat++) {
+                Entity rider = riderIn(seat);
+                if (rider == null) continue;
+                rider.hurt(damageSources().source(FLYING_GLASS), 5.0f);
+                server.sendParticles(new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(0.75f, 0.05f, 0.05f), 1.4f),
+                        rider.getX(), rider.getEyeY() - 0.2, rider.getZ(), 8, 0.2, 0.15, 0.2, 0);
+            }
+        }
+        tellRiders("message.interceptors.windows_blown");
     }
 
     // ------------------------------------------------------------------ fixed seats
@@ -333,6 +379,7 @@ public class InterceptorVehicle extends Entity {
         entityData.set(GRIME, tag.getFloat("Grime"));
         entityData.set(DISH, tag.getBoolean("Dish"));
         entityData.set(SEATS, tag.getCompound("Seats"));
+        entityData.set(LEXAN, tag.getBoolean("Lexan"));
         entityData.set(DEPLOY, tag.getInt("Deploy"));
     }
 
@@ -349,6 +396,7 @@ public class InterceptorVehicle extends Entity {
         tag.putFloat("Grime", getGrime());
         tag.putBoolean("Dish", entityData.get(DISH));
         tag.put("Seats", entityData.get(SEATS).copy());
+        tag.putBoolean("Lexan", lexanUp());
         tag.putInt("Deploy", getDeploy());
     }
 
@@ -745,6 +793,8 @@ public class InterceptorVehicle extends Entity {
         if (!isControlledByLocalInstance()) lastWind = wind;
         double mph = wind.horizontalDistance();
         stormWear(mph);
+        // No Lexan up when a strong tornado passes over: the windows blow in.
+        if (spec.hasLexan() && !lexanUp() && mph >= SHATTER_MPH && InterceptorsConfig.get(InterceptorsConfig.FAILURES)) shatterWindows();
         if (failed(Part.WINDOWS) && mph > 80) {
             // Busted windows: wind and debris come straight in.
             for (Entity rider : getPassengers()) rider.hurt(damageSources().generic(), 1.0f);

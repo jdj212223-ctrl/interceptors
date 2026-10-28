@@ -78,6 +78,14 @@ with iron ingots. Turn failures down or off in `interceptors-server.toml` (`fail
   follower counter and viewer chat, and a bottom strip with the watch number and its countdown, the in-game date
   and time, and a scrolling ticker of the live storm data.
 
+## Lexan window shield (Aurora, 2009)
+
+The armored interceptors (Dominators and TIV 1) have a Lexan shield that rolls up over the windows: press **K**.
+Up, smoky panels cover the glass, so the view is darker but the windows are safe. Down, if a tornado of EF2
+strength (111 mph or more) passes over the vehicle, the windows blow in: glass everywhere, the Windows part
+fails, and the two front-seat riders are cut by flying glass (a few hearts, a red flash). A flashing
+**RAISE LEXAN!** warning shows when a tornado is close or the wind is strong with the shield down.
+
 ## Controls
 
 | Key | Does |
@@ -91,6 +99,7 @@ with iron ingots. Turn failures down or off in `interceptors-server.toml` (`fail
 | Y (or right-click with an empty hand from your seat) | Driver: car display. Passengers: the mounted passenger laptop (all apps, browser too) |
 | U | Underglow lights on / off |
 | B | Storm-chase livestream overlay on / off |
+| K | Lexan window shield up / down (armored vehicles) |
 | Sneak + punch | Pack the vehicle back into its item |
 
 All keys can be changed under Options > Controls > Interceptors. They are normal Minecraft keys, so Vivecraft can map

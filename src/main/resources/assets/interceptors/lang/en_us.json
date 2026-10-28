@@ -169,5 +169,13 @@
   "subtitles.interceptors.hail": "Hail hammers down",
   "app.interceptors.web.starting": "Starting the browser (MCEF)... The first time can take a minute while it downloads Chromium.",
   "device.interceptors.passenger_laptop": "Passenger Laptop",
-  "hud.interceptors.passenger_hint": "%s or right-click (empty hand): passenger laptop"
+  "hud.interceptors.passenger_hint": "%s or right-click (empty hand): passenger laptop",
+  "key.interceptors.lexan": "Lexan window shield up / down",
+  "hud.interceptors.lexan_up": "LEXAN UP (%s)",
+  "hud.interceptors.lexan_down": "Lexan down (%s)",
+  "hud.interceptors.raise_lexan": "RAISE LEXAN! (%s)",
+  "message.interceptors.no_lexan": "This vehicle has no Lexan shield.",
+  "message.interceptors.windows_blown": "THE WINDOWS BLEW OUT! Raise the Lexan next time!",
+  "death.attack.interceptors.flying_glass": "%1$s was cut by flying glass when the windows blew out",
+  "death.attack.interceptors.flying_glass.player": "%1$s was cut by flying glass while %2$s watched"
 }

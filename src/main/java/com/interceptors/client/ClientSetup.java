@@ -42,6 +42,7 @@ public final class ClientSetup {
         e.register(Keys.DISPLAY);
         e.register(Keys.LIGHTS);
         e.register(Keys.BROADCAST);
+        e.register(Keys.LEXAN);
     }
 
     @SubscribeEvent

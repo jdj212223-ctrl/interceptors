@@ -59,6 +59,7 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         VehicleModels.Box pivot = VehicleModels.get(id).stream().filter(b -> (b.flags() & VehicleModels.SPIN) != 0).findFirst().orElse(null);
         Map<Mat, List<VehicleModels.Box>> groups = grouped(vehicle.spec());
         float health = vehicle.healthFraction();
+        boolean lexan = vehicle.spec().hasLexan() && vehicle.lexanUp();
 
         // Solid boxes first, then the see-through glass on top of them.
         for (int pass = 0; pass < 2; pass++) {
@@ -97,6 +98,8 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                     }
                     int rgb = (f & VehicleModels.RGB) != 0 ? rainbow(time, b.rgb()) : mat.tinted ? b.rgb() : 0xFFFFFF;
                     box(pose.last(), vc, b, mat, rgb, (f & VehicleModels.GLOW) != 0 ? FULL_BRIGHT : light);
+                    // Lexan shield rolled up: a smoky polycarbonate panel just outside each window.
+                    if (lexan && (f & VehicleModels.CLEAR) != 0) box(pose.last(), vc, lexanPanel(b), mat, 0x3A4048, light);
                     pose.popPose();
                 }
             }
@@ -124,6 +127,14 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         if (health < DENTED_BELOW && mat == Mat.PAINT) return Mat.PAINT_DENTED;
         if (health < DENTED_BELOW && mat == Mat.ARMOR) return Mat.ARMOR_DENTED;
         return mat;
+    }
+
+    /** A window box thickened a little on its thin side, so the shield sits just outside the glass. */
+    private static VehicleModels.Box lexanPanel(VehicleModels.Box b) {
+        float pad = 0.02f;
+        boolean thinX = b.x1() - b.x0() < b.z1() - b.z0();
+        return new VehicleModels.Box(b.x0() - (thinX ? pad : 0), b.y0(), b.z0() - (thinX ? 0 : pad), b.x1() + (thinX ? pad : 0), b.y1(),
+                b.z1() + (thinX ? 0 : pad), b.rgb(), b.flags(), b.mat(), 0, 0, 0, 0);
     }
 
     /** Thin outer trim (stripes, cage bars, chevrons): the first things to be torn away. */

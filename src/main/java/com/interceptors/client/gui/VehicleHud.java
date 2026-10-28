@@ -62,6 +62,7 @@ public final class VehicleHud {
         }
 
         warnings(g, font, v, x, y + h + 4, blink);
+        lexan(g, font, mc, v, blink);
         if (v.getControllingPassenger() != mc.player) {
             // Passengers: how to reach the laptop in front of them.
             Component hint = Component.translatable("hud.interceptors.passenger_hint", com.interceptors.client.Keys.DISPLAY.getTranslatedKeyMessage());
@@ -93,6 +94,45 @@ public final class VehicleHud {
             if (!failed || blink) g.fill(x + 2, ly + 2, x + 8, ly + 8, 0xFF000000 | color);
             g.drawString(font, name, x + 11, ly + 1, color);
             line++;
+        }
+    }
+
+    /** Windows-health last frame, to catch the moment the glass blows in. */
+    private static int lastWindows = 100;
+    /** When the glass blew in (game time), for the red flash. */
+    private static long burstAt = -100;
+
+    /**
+     * The Lexan shield: its state, a flashing RAISE LEXAN! when a tornado is close with the shield down, and a red
+     * flash for the front-seat riders when the windows blow in.
+     */
+    private static void lexan(GuiGraphics g, Font font, Minecraft mc, InterceptorVehicle v, boolean blink) {
+        long now = mc.level.getGameTime();
+        int windows = v.condition(Part.WINDOWS);
+        if (!Part.failed(lastWindows) && Part.failed(windows) && v.seatOf(mc.player) < 2 && v.seatOf(mc.player) >= 0) burstAt = now;
+        lastWindows = windows;
+        if (now - burstAt < 20) {
+            int alpha = (int) (150 * (1 - (now - burstAt) / 20f));
+            g.fill(0, 0, g.guiWidth(), g.guiHeight(), alpha << 24 | 0xB01010);
+        }
+        if (!v.spec().hasLexan()) return;
+        int x = BroadcastHud.enabled ? 10 : 6, y = (BroadcastHud.enabled ? BroadcastHud.TOP + 10 : 6) + 74 + 2;
+        Component state = Component.translatable(v.lexanUp() ? "hud.interceptors.lexan_up" : "hud.interceptors.lexan_down",
+                com.interceptors.client.Keys.LEXAN.getTranslatedKeyMessage());
+        g.fill(x, y, x + font.width(state) + 8, y + 11, 0xC0101418);
+        g.drawString(font, state, x + 4, y + 2, v.lexanUp() ? 0x80D080 : 0xC0C8D0);
+
+        Storms.StormInfo t = Storms.nearestTornado(mc.level, v.position());
+        boolean danger = v.lastWind().horizontalDistance() > 80 || t != null && t.distance() < 600;
+        if (!v.lexanUp() && danger && !Part.failed(windows) && blink) {
+            Component warn = Component.translatable("hud.interceptors.raise_lexan", com.interceptors.client.Keys.LEXAN.getTranslatedKeyMessage());
+            int cx = g.guiWidth() / 2, cy = g.guiHeight() / 3;
+            g.pose().pushPose();
+            g.pose().translate(cx - font.width(warn), cy, 0);
+            g.pose().scale(2, 2, 1);
+            g.fill(-4, -3, font.width(warn) + 4, 11, 0xD0000000);
+            g.drawString(font, warn, 0, 0, 0xFF3030, true);
+            g.pose().popPose();
         }
     }
 }
