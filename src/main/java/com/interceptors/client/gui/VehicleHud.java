@@ -102,6 +102,12 @@ public final class VehicleHud {
     /** When the glass blew in (game time), for the red flash. */
     private static long burstAt = -100;
 
+    /** The server says our windows just blew in on us. */
+    public static void glassBurst() {
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.level != null) burstAt = mc.level.getGameTime();
+    }
+
     /**
      * The Lexan shield: its state, a flashing RAISE LEXAN! when a tornado is close with the shield down, and a red
      * flash for the front-seat riders when the windows blow in.
@@ -109,11 +115,20 @@ public final class VehicleHud {
     private static void lexan(GuiGraphics g, Font font, Minecraft mc, InterceptorVehicle v, boolean blink) {
         long now = mc.level.getGameTime();
         int windows = v.condition(Part.WINDOWS);
-        if (!Part.failed(lastWindows) && Part.failed(windows) && v.seatOf(mc.player) < 2 && v.seatOf(mc.player) >= 0) burstAt = now;
         lastWindows = windows;
-        if (now - burstAt < 20) {
-            int alpha = (int) (150 * (1 - (now - burstAt) / 20f));
-            g.fill(0, 0, g.guiWidth(), g.guiHeight(), alpha << 24 | 0xB01010);
+        if (now - burstAt < 25) {
+            // A red vignette closing in from the edges, fading over about a second.
+            float fade = 1 - (now - burstAt) / 25f;
+            int gw = g.guiWidth(), gh = g.guiHeight(), depth = Math.min(gw, gh) / 4;
+            for (int i = 0; i < depth; i += 2) {
+                int alpha = (int) (170 * fade * (1 - i / (float) depth));
+                int c = alpha << 24 | 0xB00808;
+                g.fill(i, i, gw - i, i + 2, c);
+                g.fill(i, gh - i - 2, gw - i, gh - i, c);
+                g.fill(i, i + 2, i + 2, gh - i - 2, c);
+                g.fill(gw - i - 2, i + 2, gw - i, gh - i - 2, c);
+            }
+            g.fill(0, 0, gw, gh, (int) (50 * fade) << 24 | 0xB00808);
         }
         if (!v.spec().hasLexan()) return;
         int x = BroadcastHud.enabled ? 10 : 6, y = (BroadcastHud.enabled ? BroadcastHud.TOP + 10 : 6) + 74 + 2;

@@ -82,8 +82,9 @@ with iron ingots. Turn failures down or off in `interceptors-server.toml` (`fail
 
 Dominator 1 has a Lexan shield that rolls up over the windows, like the real one at Aurora, Nebraska: press **K**.
 Up, smoky panels cover the glass, so the view is darker but the windows are safe. Down, if a tornado of EF2
-strength (111 mph or more) passes over the vehicle, the windows blow in: glass everywhere, the Windows part
-fails, and the two front-seat riders are cut by flying glass (a few hearts, a red flash). A flashing
+strength passes over the vehicle (111 mph at the truck, or an EF2+ tornado's centre right on top of it), the
+windows blow in: glass everywhere, the Windows part fails, and everyone inside is cut by flying glass (front seats
+about 2.5 hearts, back seats 1), with blocky red bits in front of them and a red vignette on their screens. A flashing
 **RAISE LEXAN!** warning shows when a tornado is close or the wind is strong with the shield down.
 
 ## Controls

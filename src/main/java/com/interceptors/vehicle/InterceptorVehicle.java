@@ -150,6 +150,16 @@ public class InterceptorVehicle extends Entity {
     }
 
     /**
+     * An EF2 or stronger tornado passing right over the vehicle (its centre within its own half-width plus a bit).
+     * The wind measured at the vehicle can read lower than the tornado's rating, so this counts on its own.
+     */
+    private boolean tornadoOverhead() {
+        if (forcedWind != null) return false;
+        Storms.StormInfo t = Storms.nearestTornado(level(), position());
+        return t != null && t.ef() >= 2 && t.distance() < t.width() / 2 + 15;
+    }
+
+    /**
      * The windows blow out: glass everywhere, and the riders up front, next to the windshield and door glass,
      * get cut by flying glass.
      */
@@ -160,12 +170,18 @@ public class InterceptorVehicle extends Entity {
         if (level() instanceof ServerLevel server) {
             server.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, net.minecraft.world.level.block.Blocks.GLASS.defaultBlockState()),
                     getX(), getY() + spec.height() * 0.7, getZ(), 60, spec.width() / 3, 0.4, spec.width() / 3, 0.2);
-            for (int seat = 0; seat < 2; seat++) {
-                Entity rider = riderIn(seat);
-                if (rider == null) continue;
-                rider.hurt(damageSources().source(FLYING_GLASS), 5.0f);
-                server.sendParticles(new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(0.75f, 0.05f, 0.05f), 1.4f),
-                        rider.getX(), rider.getEyeY() - 0.2, rider.getZ(), 8, 0.2, 0.15, 0.2, 0);
+            var blood = new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(0.8f, 0.04f, 0.04f), 1.6f);
+            for (Entity rider : getPassengers()) {
+                // Up front, right by the windshield and door glass, it's worse than in the back.
+                int seat = seatOf(rider);
+                rider.hurt(damageSources().source(FLYING_GLASS), seat >= 0 && seat < 2 ? 5.0f : 2.0f);
+                // Blocky red bits in front of the rider's face, where they (and anyone nearby) can see them.
+                Vec3 face = rider.getEyePosition().add(rider.getLookAngle().scale(0.5));
+                server.sendParticles(blood, face.x, face.y - 0.15, face.z, 20, 0.25, 0.2, 0.25, 0);
+                server.sendParticles(blood, rider.getX(), rider.getY() + 0.9, rider.getZ(), 12, 0.3, 0.3, 0.3, 0);
+                if (rider instanceof net.minecraft.server.level.ServerPlayer sp) {
+                    net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new com.interceptors.network.GlassBurstPayload());
+                }
             }
         }
         tellRiders("message.interceptors.windows_blown");
@@ -822,7 +838,9 @@ public class InterceptorVehicle extends Entity {
         double mph = wind.horizontalDistance();
         stormWear(mph);
         // No Lexan up when a strong tornado passes over: the windows blow in.
-        if (spec.hasLexan() && !lexanUp() && mph >= SHATTER_MPH && InterceptorsConfig.get(InterceptorsConfig.FAILURES)) shatterWindows();
+        if (spec.hasLexan() && !lexanUp() && InterceptorsConfig.get(InterceptorsConfig.FAILURES) && (mph >= SHATTER_MPH || tornadoOverhead())) {
+            shatterWindows();
+        }
         if (failed(Part.WINDOWS) && mph > 80) {
             // Busted windows: wind and debris come straight in.
             for (Entity rider : getPassengers()) rider.hurt(damageSources().generic(), 1.0f);

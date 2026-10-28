@@ -23,6 +23,7 @@ public final class ModNetwork {
         r.playToServer(VehicleActionPayload.TYPE, VehicleActionPayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof ServerPlayer sp && sp.getVehicle() instanceof InterceptorVehicle v) handle(sp, v, p.action());
         }));
+        r.playToClient(GlassBurstPayload.TYPE, GlassBurstPayload.CODEC, (p, ctx) -> ctx.enqueueWork(com.interceptors.client.gui.VehicleHud::glassBurst));
         r.playToServer(DeviceUsePayload.TYPE, DeviceUsePayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof ServerPlayer sp) drain(sp, p.device());
         }));
