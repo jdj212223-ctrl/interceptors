@@ -23,6 +23,9 @@ public final class RiderSafety {
     @SubscribeEvent
     public static void dismount(EntityMountEvent event) {
         if (!event.isDismounting() || !(event.getEntityBeingMounted() instanceof InterceptorVehicle vehicle)) return;
+        // Only the server decides. Cancelling on a client would leave it showing a rider the server already let
+        // out, and seats would disagree between screens.
+        if (event.getLevel().isClientSide) return;
         Entity rider = event.getEntityMounting();
         boolean wantsOut = rider instanceof Player p && p.isShiftKeyDown();
         if (!vehicle.mayLeave(rider, wantsOut)) event.setCanceled(true);

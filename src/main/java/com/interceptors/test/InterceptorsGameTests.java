@@ -480,6 +480,32 @@ public class InterceptorsGameTests {
         });
     }
 
+    /** Sneaking or being pulled at never turns the driver into a passenger. */
+    @GameTest(template = "pad")
+    public static void driverStaysDriverThroughShift(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        Player driver = player(helper), passenger = player(helper);
+        driver.startRiding(dom, true);
+        passenger.startRiding(dom, true);
+        dom.forcedWind = new Vec3(0, 0, 200);
+        driver.stopRiding(); // pulled at by the storm, not sneaking: stays put
+        boolean heldInStorm = driver.getVehicle() == dom && dom.seatOf(driver) == 0 && dom.getControllingPassenger() == driver;
+        dom.forcedWind = new Vec3(0, 0, 5);
+        driver.setShiftKeyDown(true);
+        driver.stopRiding();
+        boolean outOnCalmDay = driver.getVehicle() == null && dom.seatOf(passenger) == 1 && dom.getControllingPassenger() == null;
+        driver.setShiftKeyDown(false);
+        driver.startRiding(dom, true);
+        boolean backAsDriver = dom.seatOf(driver) == 0 && dom.getControllingPassenger() == driver
+                && dom.seatScreen(driver) == com.interceptors.device.Device.CAR_DISPLAY;
+        driver.stopRiding();
+        passenger.stopRiding();
+        helper.assertTrue(heldInStorm, "the storm moved the driver out of the driver's seat");
+        helper.assertTrue(outOnCalmDay, "sneaking out on a calm day didn't empty the driver's seat cleanly");
+        helper.assertTrue(backAsDriver, "getting back in didn't make them the driver with the car display");
+        helper.succeed();
+    }
+
     @GameTest(template = "pad")
     public static void repairKitFullyFixesTheWorstPart(GameTestHelper helper) {
         InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);

@@ -613,7 +613,34 @@ public class InterceptorVehicle extends Entity {
     @Nullable
     @Override
     public LivingEntity getControllingPassenger() {
-        return riderIn(0) instanceof Player p ? p : null;
+        if (riderIn(0) instanceof Player p) return p;
+        // Before the seat list reaches this computer, the first one in is the driver, as before fixed seats.
+        if (entityData.get(SEATS).isEmpty() && getFirstPassenger() instanceof Player p) return p;
+        return null;
+    }
+
+    /** Keeps the seat list honest: every rider has a seat, and nobody holds a seat they've left. */
+    private void checkSeats() {
+        CompoundTag seats = entityData.get(SEATS).copy();
+        boolean changed = false;
+        for (int i = 0; i < spec.seats().size(); i++) {
+            if (seats.hasUUID("s" + i) && riderIn(i) == null) {
+                seats.remove("s" + i);
+                changed = true;
+            }
+        }
+        if (changed) entityData.set(SEATS, seats);
+        for (Entity rider : getPassengers()) {
+            if (seatOf(rider) >= 0) continue;
+            CompoundTag now = entityData.get(SEATS).copy();
+            for (int i = 0; i < spec.seats().size(); i++) {
+                if (!now.hasUUID("s" + i)) {
+                    now.putUUID("s" + i, rider.getUUID());
+                    entityData.set(SEATS, now);
+                    break;
+                }
+            }
+        }
     }
 
     @Override
@@ -695,6 +722,7 @@ public class InterceptorVehicle extends Entity {
     }
 
     private void serverTick() {
+        if (tickCount % 20 == 0) checkSeats();
         int d = getDeploy();
         if (d > 0) {
             entityData.set(DEPLOY, d - 1);
