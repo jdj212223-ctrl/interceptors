@@ -12,7 +12,15 @@ import com.interceptors.vehicle.Part;
 import com.interceptors.vehicle.VehicleSpec;
 import com.interceptors.vehicle.WindPhysics;
 import net.minecraft.core.BlockPos;
+import com.mojang.authlib.GameProfile;
+import io.netty.channel.embedded.EmbeddedChannel;
 import net.minecraft.gametest.framework.GameTest;
+import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.PacketFlow;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.server.network.CommonListenerCookie;
+import net.minecraft.world.level.GameType;
+import java.util.UUID;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.gametest.framework.GameTestHelper;
 import net.minecraft.nbt.CompoundTag;
@@ -29,6 +37,28 @@ public class InterceptorsGameTests {
     /** Where vehicles park: on top of the pad's floor, which sits one block above the test origin. */
     private static Vec3 centre(GameTestHelper helper) {
         return Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(8, 2, 8)));
+    }
+
+    /** A real survival player in the test world (GameTestHelper's mock player claims to be creative). */
+    private static ServerPlayer player(GameTestHelper helper) {
+        ServerLevel level = helper.getLevel();
+        CommonListenerCookie cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), "test-chaser"), false);
+        ServerPlayer p = new ServerPlayer(level.getServer(), level, cookie.gameProfile(), cookie.clientInformation()) {
+            @Override
+            public boolean isSpectator() {
+                return false;
+            }
+
+            @Override
+            public boolean isCreative() {
+                return false;
+            }
+        };
+        Connection connection = new Connection(PacketFlow.SERVERBOUND);
+        new EmbeddedChannel(connection);
+        level.getServer().getPlayerList().placeNewPlayer(connection, p, cookie);
+        p.setGameMode(GameType.SURVIVAL);
+        return p;
     }
 
     /** Parks a vehicle in the middle of the pad, facing +Z (south). */
@@ -368,6 +398,42 @@ public class InterceptorsGameTests {
             helper.assertTrue(DeviceItem.battery(ipad) > 10, "iPad didn't charge while riding: " + DeviceItem.battery(ipad));
             helper.assertTrue(DeviceItem.battery(loose) == 10, "a device charged without anyone riding");
             helper.assertTrue(DeviceItem.battery(new ItemStack(ModItems.MACBOOK.get())) == 100, "new devices should start full");
+            helper.succeed();
+        });
+    }
+
+    /** Right-clicking from inside lets the item in your hand work (iPad, laptop) instead of re-entering the vehicle. */
+    @GameTest(template = "pad")
+    public static void ridersCanUseHandheldsInside(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        ServerPlayer rider = player(helper);
+        rider.moveTo(dom.position());
+        helper.assertTrue(rider.startRiding(dom, true), "fake player couldn't get in");
+        rider.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new ItemStack(ModItems.IPAD.get()));
+        var result = dom.interact(rider, net.minecraft.world.InteractionHand.MAIN_HAND);
+        rider.stopRiding();
+        rider.discard();
+        helper.assertTrue(result == net.minecraft.world.InteractionResult.PASS, "clicking from inside was eaten by the vehicle: " + result);
+        helper.succeed();
+    }
+
+    @GameTest(template = "pad")
+    public static void repairKitFullyFixesTheWorstPart(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        dom.setCondition(Part.WINDOWS, 0);
+        helper.assertTrue(dom.repairWorstPart() == Part.WINDOWS && dom.condition(Part.WINDOWS) == 100, "windows not fully fixed");
+        helper.succeed();
+    }
+
+    @GameTest(template = "pad", timeoutTicks = 120)
+    public static void vehiclesFloatInDeepWater(GameTestHelper helper) {
+        for (int x = 0; x < 17; x++) for (int y = 2; y < 5; y++) for (int z = 0; z < 17; z++) {
+            helper.setBlock(new BlockPos(x, y, z), net.minecraft.world.level.block.Blocks.WATER);
+        }
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        double floor = dom.getY();
+        helper.runAfterDelay(100, () -> {
+            helper.assertTrue(dom.getY() > floor + 1.2, "Dom 3 sank in 3 blocks of water: rose only " + (dom.getY() - floor));
             helper.succeed();
         });
     }

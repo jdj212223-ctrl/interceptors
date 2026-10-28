@@ -63,6 +63,8 @@ public class InterceptorVehicle extends Entity {
     private static final float GRIME_PER_TICK = 0.04f, GRIME_PER_SOFT_DEPLOY = 8, WASH_PER_TICK = 1.5f;
 
     public static final int RETRACT_TICKS = 20, REBOOT_TICKS = 100;
+    /** How deep in water a vehicle settles: wheels and lower body under, cab above the surface. */
+    public static final double WADING_DEPTH = 0.8;
     /** Solar battery: a full charge runs the screens for about 17 in-game hours, and the sun fills it in about 7. */
     private static final float DRAIN_PER_TICK = 100f / 17000, CHARGE_PER_TICK = 100f / 7000;
 
@@ -373,13 +375,13 @@ public class InterceptorVehicle extends Entity {
         }
     }
 
-    /** Fixes the worst part by half. Returns the part fixed, or null if nothing needed it. */
+    /** Fully fixes the worst part. Returns the part fixed, or null if nothing needed it. */
     @Nullable
     public Part repairWorstPart() {
         Part worst = null;
         for (Part p : Part.values()) if (condition(p) < 100 && (worst == null || condition(p) < condition(worst))) worst = p;
         if (worst == null) return null;
-        setCondition(worst, condition(worst) + 50);
+        setCondition(worst, 100);
         if (worst == Part.COMPUTER && !failed(Part.COMPUTER)) entityData.set(FROZEN, false);
         return worst;
     }
@@ -439,7 +441,8 @@ public class InterceptorVehicle extends Entity {
             }
             return InteractionResult.sidedSuccess(level().isClientSide);
         }
-        if (player.isSecondaryUseActive() || !canAddPassenger(player)) return InteractionResult.PASS;
+        // Riders right-clicking inside are using what's in their hand (an iPad, a laptop), not getting in again.
+        if (hasPassenger(player) || player.isSecondaryUseActive() || !canAddPassenger(player)) return InteractionResult.PASS;
         if (level().isClientSide) return InteractionResult.SUCCESS;
         return player.startRiding(this) ? InteractionResult.CONSUME : InteractionResult.PASS;
     }
@@ -632,6 +635,9 @@ public class InterceptorVehicle extends Entity {
 
         Vec3 facing = Vec3.directionFromRotation(0, getYRot());
         double vy = (getDeltaMovement().y - WindPhysics.GRAVITY) * 0.98 + push.y;
+        // Heavy, but sealed: in deep water a vehicle bobs up to wading depth instead of sinking out of sight.
+        double depth = getFluidHeight(net.minecraft.tags.FluidTags.WATER);
+        if (depth > WADING_DEPTH) vy = Math.max(vy * 0.6, Math.min(0.12, (depth - WADING_DEPTH) * 0.15));
         setDeltaMovement(facing.x * speed + drift.x, vy, facing.z * speed + drift.z);
         move(MoverType.SELF, getDeltaMovement());
         if (onGround() && getDeltaMovement().y < 0) setDeltaMovement(getDeltaMovement().multiply(1, 0, 1));

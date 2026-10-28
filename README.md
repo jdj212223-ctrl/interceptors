@@ -55,7 +55,7 @@ their seat: you only leave by pressing Shift, or if the vehicle is wrecked. Inta
 Every vehicle has a live dash screen in front of the driver and a rugged laptop mounted for the front passenger;
 the **Rugged Laptop** item opens the same storm apps anywhere.
 
-Fix parts with a **Field Repair Kit** (right-click the vehicle; fixes the worst part by half). Fix body damage
+Fix parts with a **Field Repair Kit** (right-click the vehicle; fully fixes the worst part and cleans out mud). Fix body damage
 with iron ingots. Turn failures down or off in `interceptors-server.toml` (`failures.enabled`, `wearRate`,
 `freezeRate`).
 
