@@ -62,9 +62,9 @@ public record VehicleSpec(String id, float health, float grip, float anchorHold,
         return List.copyOf(seats);
     }
 
-    /** The armored interceptors (Dominators, TIV) have a Lexan shield that rolls up over the windows. */
+    /** Only Dominator 1 has the Lexan shield that rolls up over the windows, like at Aurora in 2009. */
     public boolean hasLexan() {
-        return id.startsWith("dominator") || id.startsWith("tiv");
+        return this == DOMINATOR_1;
     }
 
     public boolean hasAnchors() {

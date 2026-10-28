@@ -472,7 +472,9 @@ public class InterceptorsGameTests {
         shielded.forcedWind = new Vec3(0, 0, 130);
         helper.runAfterDelay(25, () -> {
             helper.assertTrue(!shielded.failed(Part.WINDOWS), "windows blew out with the Lexan up");
-            helper.assertTrue("message.interceptors.no_lexan".equals(park(helper, VehicleSpec.GAMING_VAN).toggleLexan()), "the van shouldn't have Lexan");
+            for (VehicleSpec other : VehicleSpec.ALL) {
+                if (other != VehicleSpec.DOMINATOR_1) helper.assertTrue(!other.hasLexan(), other.id() + " shouldn't have Lexan: only Dom 1 does");
+            }
             shielded.forcedWind = Vec3.ZERO;
             helper.succeed();
         });
