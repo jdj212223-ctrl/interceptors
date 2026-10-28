@@ -258,7 +258,8 @@ public class DeviceScreen extends Screen {
         g.drawString(font, title, sx + 4, sy + 2, 0xC0C8D0, false);
         long day = minecraft.level.getDayTime() % 24000;
         int hours = (int) ((day / 1000 + 6) % 24), minutes = (int) (day % 1000 * 60 / 1000);
-        String clock = String.format("%d:%02d", hours, minutes);
+        String date = com.interceptors.compat.Storms.date(minecraft.level);
+        String clock = (date == null ? "" : date + "  ") + String.format("%d:%02d", hours, minutes);
         g.drawString(font, clock, sx + sw / 2 - font.width(clock) / 2, sy + 2, 0xFFFFFF, false);
         if (device.portable()) {
             int bx = sx + sw - 20, charge = battery();

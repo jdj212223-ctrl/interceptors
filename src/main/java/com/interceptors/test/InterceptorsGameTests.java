@@ -527,6 +527,16 @@ public class InterceptorsGameTests {
         });
     }
 
+    /** Dates read like "MAY 5, 2026": PMWeather's month and day, with our year starting at 2026. */
+    @GameTest(template = "pad")
+    public static void calendarShowsTheYear(GameTestHelper helper) {
+        String date = Storms.date(helper.getLevel());
+        helper.assertTrue(date != null && date.matches("[A-Z ]+ \\d{1,2}, 20\\d\\d"), "date looks wrong: " + date);
+        int year = Integer.parseInt(date.substring(date.length() - 4));
+        helper.assertTrue(year >= Storms.FIRST_YEAR, "year before 2026: " + date);
+        helper.succeed();
+    }
+
     @GameTest(template = "pad")
     public static void readsRealPMWeather(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();

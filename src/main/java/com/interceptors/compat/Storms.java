@@ -36,6 +36,25 @@ public final class Storms {
         }
     }
 
+    /** The first year of a world on PMWeather's calendar: it's 2026, like real life. */
+    public static final int FIRST_YEAR = 2026;
+
+    /**
+     * Today's date on PMWeather's calendar with the year added, like "MAY 5, 2026". The year counts up every 12
+     * PMWeather months. Null if the calendar can't be read.
+     */
+    public static String date(Level level) {
+        try {
+            int month = dev.protomanly.pmweather.seasons.SeasonHandler.getMonth(level);
+            int day = dev.protomanly.pmweather.seasons.SeasonHandler.getDayInMonth(level);
+            int year = FIRST_YEAR + dev.protomanly.pmweather.seasons.SeasonHandler.getYear(level);
+            String name = dev.protomanly.pmweather.seasons.SeasonHandler.getMonthName(month);
+            return (name == null ? "MONTH " + month : name.toUpperCase()) + " " + day + ", " + year;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
     /** Hail intensity at a spot, 0..1. */
     public static float hailAt(Level level, Vec3 pos) {
         try {

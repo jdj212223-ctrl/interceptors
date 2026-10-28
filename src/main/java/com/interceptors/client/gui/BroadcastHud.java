@@ -221,7 +221,8 @@ public final class BroadcastHud {
         int mid = w / 2;
         long dayTime = level.getDayTime() % 24000;
         int hours = (int) ((dayTime / 1000 + 6) % 24), minutes = (int) (dayTime % 1000 * 60 / 1000);
-        String when = String.format("DAY %d  %d:%02d", day + 1, hours, minutes);
+        String date = Storms.date(level);
+        String when = (date == null ? "DAY " + (day + 1) : date) + String.format("  %d:%02d", hours, minutes);
         g.drawString(font, when, mid - font.width(when) / 2, y + 3, WHITE, false);
         Draw.line(g, mid - 9, y + 13, mid, y + 19, 2, WHITE);
         Draw.line(g, mid, y + 19, mid + 9, y + 13, 2, WHITE);
