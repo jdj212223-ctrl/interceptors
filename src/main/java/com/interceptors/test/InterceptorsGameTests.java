@@ -417,6 +417,26 @@ public class InterceptorsGameTests {
         helper.succeed();
     }
 
+    /** Drivers reach the car display from their seat; every passenger reaches the mounted passenger laptop. */
+    @GameTest(template = "pad")
+    public static void passengersGetTheLaptop(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        ServerPlayer driver = player(helper), passenger = player(helper);
+        driver.moveTo(dom.position());
+        passenger.moveTo(dom.position());
+        helper.assertTrue(driver.startRiding(dom, true) && passenger.startRiding(dom, true), "couldn't seat both");
+        boolean ok = dom.seatScreen(driver) == com.interceptors.device.Device.CAR_DISPLAY
+                && dom.seatScreen(passenger) == com.interceptors.device.Device.PASSENGER_LAPTOP;
+        var empty = dom.interact(passenger, net.minecraft.world.InteractionHand.MAIN_HAND);
+        driver.stopRiding();
+        passenger.stopRiding();
+        driver.discard();
+        passenger.discard();
+        helper.assertTrue(ok, "wrong screens for the seats");
+        helper.assertTrue(empty.consumesAction(), "empty-hand click from the passenger seat did nothing: " + empty);
+        helper.succeed();
+    }
+
     @GameTest(template = "pad")
     public static void repairKitFullyFixesTheWorstPart(GameTestHelper helper) {
         InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);

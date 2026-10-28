@@ -88,7 +88,7 @@ public class DeviceScreen extends Screen {
     // ------------------------------------------------------------------ layout
 
     private boolean hasDeck() {
-        return device == Device.LAPTOP || device == Device.MACBOOK || device == Device.RUGGED_LAPTOP;
+        return device == Device.LAPTOP || device == Device.MACBOOK || device == Device.RUGGED_LAPTOP || device == Device.PASSENGER_LAPTOP;
     }
 
     @Override
@@ -169,7 +169,7 @@ public class DeviceScreen extends Screen {
                 }
                 g.fill(sx + sw / 2 - 30, dy + 28, sx + sw / 2 + 30, dy + 38, mac ? 0xFFB9BDC2 : 0xFF2B2D31);
             }
-            case RUGGED_LAPTOP -> {
+            case RUGGED_LAPTOP, PASSENGER_LAPTOP -> {
                 // Toughbook look: thick silver magnesium case, black rubber corner bumpers, latch, carry handle.
                 g.fill(sx - 12, sy - 12, sx + sw + 12, sy + sh + 10, 0xFFC4C8CC);
                 g.fill(sx + sw / 2 - 14, sy - 16, sx + sw / 2 + 14, sy - 9, 0xFF202020);

@@ -85,7 +85,7 @@ with iron ingots. Turn failures down or off in `interceptors-server.toml` (`fail
 | Shift | Get out |
 | G | Anchors down / up (stop first). Hold it to reboot a frozen computer |
 | H | Horn |
-| Y | Car display (vehicle, radar, intercept, storm list; Tornado Dodge in the van) |
+| Y (or right-click with an empty hand from your seat) | Driver: car display. Passengers: the mounted passenger laptop (all apps, browser too) |
 | U | Underglow lights on / off |
 | B | Stream overlay (LIVE lower third) on / off |
 | Sneak + punch | Pack the vehicle back into its item |

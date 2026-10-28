@@ -61,6 +61,13 @@ public final class VehicleHud {
         }
 
         warnings(g, font, v, x, y + h + 4, blink);
+        if (v.getControllingPassenger() != mc.player) {
+            // Passengers: how to reach the laptop in front of them.
+            Component hint = Component.translatable("hud.interceptors.passenger_hint", com.interceptors.client.Keys.DISPLAY.getTranslatedKeyMessage());
+            int hx = g.guiWidth() / 2 - font.width(hint) / 2, hy = g.guiHeight() - 62;
+            g.fill(hx - 4, hy - 2, hx + font.width(hint) + 4, hy + 10, 0xA0101418);
+            g.drawString(font, hint, hx, hy, 0x30E0FF);
+        }
     }
 
     /** One warning light per part that's wearing out or broken. */

@@ -2,7 +2,6 @@ package com.interceptors.client;
 
 import com.interceptors.Interceptors;
 import com.interceptors.client.gui.BroadcastHud;
-import com.interceptors.device.Device;
 import com.interceptors.network.VehicleActionPayload;
 import com.interceptors.vehicle.InterceptorVehicle;
 import net.minecraft.client.Minecraft;
@@ -50,6 +49,8 @@ public final class ClientEvents {
         while (Keys.LIGHTS.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.LIGHTS));
         while (Keys.BROADCAST.consumeClick()) BroadcastHud.enabled = !BroadcastHud.enabled;
         StormAmbience.tick(mc);
-        while (Keys.DISPLAY.consumeClick()) if (inVehicle) Device.CAR_DISPLAY.open();
+        while (Keys.DISPLAY.consumeClick()) {
+            if (inVehicle && mc.player.getVehicle() instanceof InterceptorVehicle v) v.seatScreen(mc.player).open();
+        }
     }
 }

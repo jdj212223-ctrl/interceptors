@@ -442,9 +442,21 @@ public class InterceptorVehicle extends Entity {
             return InteractionResult.sidedSuccess(level().isClientSide);
         }
         // Riders right-clicking inside are using what's in their hand (an iPad, a laptop), not getting in again.
-        if (hasPassenger(player) || player.isSecondaryUseActive() || !canAddPassenger(player)) return InteractionResult.PASS;
+        if (hasPassenger(player)) {
+            // Empty hand from inside: the driver gets the car display, everyone else the mounted passenger laptop.
+            // With something in hand, let that item work (an iPad, a laptop).
+            if (!stack.isEmpty()) return InteractionResult.PASS;
+            if (level().isClientSide) seatScreen(player).open();
+            return InteractionResult.sidedSuccess(level().isClientSide);
+        }
+        if (player.isSecondaryUseActive() || !canAddPassenger(player)) return InteractionResult.PASS;
         if (level().isClientSide) return InteractionResult.SUCCESS;
         return player.startRiding(this) ? InteractionResult.CONSUME : InteractionResult.PASS;
+    }
+
+    /** The screen a rider reaches from their seat: car display for the driver, the passenger laptop for the rest. */
+    public com.interceptors.device.Device seatScreen(Entity rider) {
+        return getControllingPassenger() == rider ? com.interceptors.device.Device.CAR_DISPLAY : com.interceptors.device.Device.PASSENGER_LAPTOP;
     }
 
     @Override

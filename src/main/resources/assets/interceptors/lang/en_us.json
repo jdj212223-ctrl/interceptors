@@ -167,5 +167,7 @@
   "death.attack.interceptors.hail.player": "%1$s was pummeled by baseball-size hail while fleeing %2$s",
   "subtitles.interceptors.wind_roar": "Tornado roars",
   "subtitles.interceptors.hail": "Hail hammers down",
-  "app.interceptors.web.starting": "Starting the browser (MCEF)... The first time can take a minute while it downloads Chromium."
+  "app.interceptors.web.starting": "Starting the browser (MCEF)... The first time can take a minute while it downloads Chromium.",
+  "device.interceptors.passenger_laptop": "Passenger Laptop",
+  "hud.interceptors.passenger_hint": "%s or right-click (empty hand): passenger laptop"
 }

@@ -15,7 +15,7 @@ public final class Apps {
     public static List<App> forDevice(Device device, DeviceScreen screen) {
         List<App> apps = new ArrayList<>();
         InterceptorVehicle v = screen.vehicle();
-        if (device == Device.CAR_DISPLAY) apps.add(new VehicleApp());
+        if (device == Device.CAR_DISPLAY || device == Device.PASSENGER_LAPTOP) apps.add(new VehicleApp());
         apps.add(new RadarApp());
         apps.add(new InterceptApp());
         apps.add(new StormListApp());
