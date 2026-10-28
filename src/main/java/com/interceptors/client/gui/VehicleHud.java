@@ -22,7 +22,8 @@ public final class VehicleHud {
         if (mc.options.hideGui || mc.player == null || !(mc.player.getVehicle() instanceof InterceptorVehicle v)) return;
         Font font = mc.font;
         boolean blink = mc.level.getGameTime() / 6 % 2 == 0;
-        int x = 6, y = 6, w = 168, h = 74;
+        // Inside the video frame when the stream overlay is on.
+        int x = BroadcastHud.enabled ? 10 : 6, y = BroadcastHud.enabled ? BroadcastHud.TOP + 10 : 6, w = 168, h = 74;
         g.fill(x, y, x + w, y + h, 0xB0101418);
         g.fill(x, y, x + w, y + 1, 0xFF30E0FF);
 
@@ -64,7 +65,7 @@ public final class VehicleHud {
         if (v.getControllingPassenger() != mc.player) {
             // Passengers: how to reach the laptop in front of them.
             Component hint = Component.translatable("hud.interceptors.passenger_hint", com.interceptors.client.Keys.DISPLAY.getTranslatedKeyMessage());
-            int hx = g.guiWidth() / 2 - font.width(hint) / 2, hy = g.guiHeight() - 62;
+            int hx = g.guiWidth() / 2 - font.width(hint) / 2, hy = g.guiHeight() - (BroadcastHud.enabled ? BroadcastHud.BOTTOM + 40 : 62);
             g.fill(hx - 4, hy - 2, hx + font.width(hint) + 4, hy + 10, 0xA0101418);
             g.drawString(font, hint, hx, hy, 0x30E0FF);
         }

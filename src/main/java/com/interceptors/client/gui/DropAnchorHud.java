@@ -41,6 +41,10 @@ public final class DropAnchorHud {
         if (status == AnchorStatus.NONE) return;
         boolean blink = mc.level.getGameTime() / 6 % 2 == 0;
         int x = g.guiWidth() - W - 6, y = 6;
+        if (BroadcastHud.enabled) {
+            x = g.guiWidth() - BroadcastHud.columnWidth(g.guiWidth()) - W - 10;
+            y = BroadcastHud.TOP + 10;
+        }
         g.fill(x, y, x + W, y + H, 0xFF000000);
         g.fill(x, y, x + W, y + 1, 0xFF202020);
 

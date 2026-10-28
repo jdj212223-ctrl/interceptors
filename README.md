@@ -72,8 +72,11 @@ with iron ingots. Turn failures down or off in `interceptors-server.toml` (`fail
   Doppler on Wheels' radar counts as a dish.
 - **Batteries:** the MacBook, iPad and Rugged Laptop drain while open (about 8 minutes of screen time) and charge
   while you ride in any interceptor (the van's charger draws on its solar battery).
-- **Stream overlay:** press **B** for a LIVE lower third with your biome, the wind, the tornado and your vehicle's
-  telemetry, made to look good captured in OBS.
+- **Stream overlay:** press **B** for a full storm-chase livestream layout, made for OBS: an orange top bar, the
+  game framed in orange and black with your crew name, a TORNADO WATCH box (red TORNADO WARNING with a tornado
+  within 3 km) listing the nearby biomes as counties, a right column with a velocity radar of the real storms, a
+  follower counter and viewer chat, and a bottom strip with the watch number and its countdown, the in-game date
+  and time, and a scrolling ticker of the live storm data.
 
 ## Controls
 
@@ -87,7 +90,7 @@ with iron ingots. Turn failures down or off in `interceptors-server.toml` (`fail
 | H | Horn |
 | Y (or right-click with an empty hand from your seat) | Driver: car display. Passengers: the mounted passenger laptop (all apps, browser too) |
 | U | Underglow lights on / off |
-| B | Stream overlay (LIVE lower third) on / off |
+| B | Storm-chase livestream overlay on / off |
 | Sneak + punch | Pack the vehicle back into its item |
 
 All keys can be changed under Options > Controls > Interceptors. They are normal Minecraft keys, so Vivecraft can map
