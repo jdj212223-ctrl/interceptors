@@ -77,6 +77,18 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                     // Spikes and jacks start tucked up in the body and slide down as they deploy.
                     if ((f & VehicleModels.ANCHOR) != 0) pose.translate(0, (1 - extension) * 0.55f, 0);
                     if ((f & VehicleModels.SKIRT) != 0) pose.translate(0, 0.15f - 0.27f * extension, 0);
+                    if ((f & VehicleModels.WHEEL) != 0) {
+                        // Round wheels that roll with the ground speed; the front pair also steers.
+                        float cy = (b.y0() + b.y1()) / 2, cz = (b.z0() + b.z1()) / 2, cx = (b.x0() + b.x1()) / 2;
+                        if (mat == Mat.RIM) cx -= Math.signum(cx) * 0.16f;
+                        pose.translate(cx, cy, cz);
+                        if ((f & VehicleModels.FRONT) != 0) pose.mulPose(Axis.YP.rotationDegrees(vehicle.steer(partialTick)));
+                        pose.mulPose(Axis.XP.rotation(vehicle.wheelSpin(partialTick)));
+                        pose.translate(-cx, -cy, -cz);
+                        wheel(pose.last(), vc, b, mat, light);
+                        pose.popPose();
+                        continue;
+                    }
                     if ((f & VehicleModels.SPIN) != 0 && pivot != null) {
                         float px = (pivot.x0() + pivot.x1()) / 2, pz = (pivot.z0() + pivot.z1()) / 2;
                         pose.translate(px, 0, pz);
@@ -216,6 +228,39 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
     private static int rainbow(float time, int seed) {
         float hue = (time / 120f + (seed & 0xFF) / 255f) % 1f;
         return Mth.hsvToRgb(hue, 0.8f, 1f);
+    }
+
+    private static final int WHEEL_SEGMENTS = 16;
+
+    /**
+     * A wheel part as a cylinder along X filling its box: a tire gets tread on the rolling surface, a rim is a
+     * disc with the spoked rim texture laid on round so the spokes visibly turn.
+     */
+    private static void wheel(PoseStack.Pose p, VertexConsumer vc, VehicleModels.Box b, Mat mat, int light) {
+        float cy = (b.y0() + b.y1()) / 2, cz = (b.z0() + b.z1()) / 2, r = (b.y1() - b.y0()) / 2;
+        float x0 = b.x0(), x1 = b.x1();
+        Face face = new Face(p, vc, 255, 255, 255, light);
+        float su = Mat.PIXELS_PER_BLOCK / (float) mat.width, sv = Mat.PIXELS_PER_BLOCK / (float) mat.height;
+        float around = (float) (2 * Math.PI * r) * sv;
+        for (int i = 0; i < WHEEL_SEGMENTS; i++) {
+            double a0 = 2 * Math.PI * i / WHEEL_SEGMENTS, a1 = 2 * Math.PI * (i + 1) / WHEEL_SEGMENTS;
+            float c0 = (float) Math.cos(a0), s0 = (float) Math.sin(a0), c1 = (float) Math.cos(a1), s1 = (float) Math.sin(a1);
+            float y0 = cy + r * c0, z0 = cz + r * s0, y1 = cy + r * c1, z1 = cz + r * s1;
+            float nc = (float) Math.cos((a0 + a1) / 2), ns = (float) Math.sin((a0 + a1) / 2);
+            if (mat != Mat.RIM) {
+                float v0 = around * i / WHEEL_SEGMENTS, v1 = around * (i + 1) / WHEEL_SEGMENTS;
+                face.quad(0, nc, ns, new float[]{x0, y0, z0}, new float[]{x1, y0, z0}, new float[]{x1, y1, z1}, new float[]{x0, y1, z1},
+                        new float[]{x0 * su, v0, x1 * su, v0, x1 * su, v1, x0 * su, v1});
+            }
+            // The two flat sides: rims show the whole texture as a round face, tires a dark sidewall.
+            for (float x : new float[]{x0, x1}) {
+                float nx = x == x1 ? 1 : -1;
+                float[] uv = mat == Mat.RIM
+                        ? new float[]{0.5f, 0.5f, 0.5f + 0.5f * c0, 0.5f + 0.5f * s0, 0.5f + 0.5f * c1, 0.5f + 0.5f * s1, 0.5f + 0.5f * c1, 0.5f + 0.5f * s1}
+                        : new float[]{0.5f, 0.5f, 0.5f + 0.1f * c0, 0.5f + 0.1f * s0, 0.5f + 0.1f * c1, 0.5f + 0.1f * s1, 0.5f + 0.1f * c1, 0.5f + 0.1f * s1};
+                face.quad(nx, 0, 0, new float[]{x, cy, cz}, new float[]{x, y0, z0}, new float[]{x, y1, z1}, new float[]{x, y1, z1}, uv);
+            }
+        }
     }
 
     /** Faces of a box as corner indices (see {@link VehicleModels.Box#corners()}), each listed counter-clockwise from outside. */

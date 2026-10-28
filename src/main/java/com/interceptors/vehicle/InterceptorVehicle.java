@@ -74,6 +74,10 @@ public class InterceptorVehicle extends Entity {
     /** Sideways/vertical shove left over from the wind, so a gust carries on for a moment. */
     private Vec3 drift = Vec3.ZERO;
     private float deltaRotation;
+    /** Client only: how far the wheels have turned (radians) and the front wheels' steering angle (degrees). */
+    private float wheelSpin, prevWheelSpin, steer, prevSteer;
+    /** Wheel radius used to turn distance travelled into rotation. */
+    private static final float WHEEL_RADIUS = 0.42f;
     /** Set while being destroyed, so riders can be thrown clear. */
     private boolean wrecking;
     /** Wind above which riders are held in their seats. */
@@ -577,6 +581,7 @@ public class InterceptorVehicle extends Entity {
         if (!level().isClientSide) serverTick();
         super.tick();
         tickLerp();
+        if (level().isClientSide) turnWheels();
         if (isControlledByLocalInstance()) {
             LivingEntity driver = getControllingPassenger();
             simulate(driver == null ? 0 : driver.zza, driver == null ? 0 : driver.xxa);
@@ -614,6 +619,31 @@ public class InterceptorVehicle extends Entity {
             if (level().isDay() && level().canSeeSky(BlockPos.containing(getX(), getY() + spec.height(), getZ()))) battery += CHARGE_PER_TICK * 20;
             setBattery(battery);
         }
+    }
+
+    /**
+     * Rolls the wheels by however far the vehicle actually moved this tick (so they match its speed on every
+     * screen, driver or not), and turns the front wheels with the rate of turn. Client only, purely visual.
+     */
+    private void turnWheels() {
+        prevWheelSpin = wheelSpin;
+        prevSteer = steer;
+        Vec3 facing = Vec3.directionFromRotation(0, getYRot());
+        double moved = (getX() - xo) * facing.x + (getZ() - zo) * facing.z;
+        wheelSpin += (float) (moved / WHEEL_RADIUS);
+        float yawRate = Mth.wrapDegrees(getYRot() - yRotO);
+        float target = Math.abs(moved) < 0.01 ? steer : Mth.clamp(-yawRate * 7 * Math.signum((float) moved), -32, 32);
+        steer += (target - steer) * 0.35f;
+        // Passengers' dashes read the wind here too; the driver's screen gets it from simulate().
+        if (!isControlledByLocalInstance() && tickCount % 5 == 0) lastWind = Storms.windAt(level(), position().add(0, spec.height() / 2, 0));
+    }
+
+    public float wheelSpin(float partialTick) {
+        return Mth.lerp(partialTick, prevWheelSpin, wheelSpin);
+    }
+
+    public float steer(float partialTick) {
+        return Mth.lerp(partialTick, prevSteer, steer);
     }
 
     /** One tick of driving plus wind. {@code forward} and {@code left} are the driver's keys, -1..1. */

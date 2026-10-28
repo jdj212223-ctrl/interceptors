@@ -13,13 +13,8 @@ import com.interceptors.vehicle.VehicleSpec;
 import com.interceptors.vehicle.WindPhysics;
 import net.minecraft.core.BlockPos;
 import com.mojang.authlib.GameProfile;
-import io.netty.channel.embedded.EmbeddedChannel;
 import net.minecraft.gametest.framework.GameTest;
-import net.minecraft.network.Connection;
-import net.minecraft.network.protocol.PacketFlow;
-import net.minecraft.server.level.ServerPlayer;
-import net.minecraft.server.network.CommonListenerCookie;
-import net.minecraft.world.level.GameType;
+import net.minecraft.world.entity.player.Player;
 import java.util.UUID;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.gametest.framework.GameTestHelper;
@@ -39,11 +34,12 @@ public class InterceptorsGameTests {
         return Vec3.atBottomCenterOf(helper.absolutePos(new BlockPos(8, 2, 8)));
     }
 
-    /** A real survival player in the test world (GameTestHelper's mock player claims to be creative). */
-    private static ServerPlayer player(GameTestHelper helper) {
-        ServerLevel level = helper.getLevel();
-        CommonListenerCookie cookie = CommonListenerCookie.createInitial(new GameProfile(UUID.randomUUID(), "test-chaser"), false);
-        ServerPlayer p = new ServerPlayer(level.getServer(), level, cookie.gameProfile(), cookie.clientInformation()) {
+    /**
+     * A survival player that isn't connected to anything: enough to sit in seats and click. Not a networked
+     * ServerPlayer, so PMWeather never tries to sync storms to it.
+     */
+    private static Player player(GameTestHelper helper) {
+        return new Player(helper.getLevel(), helper.absolutePos(new BlockPos(8, 2, 8)), 0, new GameProfile(UUID.randomUUID(), "test-chaser")) {
             @Override
             public boolean isSpectator() {
                 return false;
@@ -54,11 +50,6 @@ public class InterceptorsGameTests {
                 return false;
             }
         };
-        Connection connection = new Connection(PacketFlow.SERVERBOUND);
-        new EmbeddedChannel(connection);
-        level.getServer().getPlayerList().placeNewPlayer(connection, p, cookie);
-        p.setGameMode(GameType.SURVIVAL);
-        return p;
     }
 
     /** Parks a vehicle in the middle of the pad, facing +Z (south). */
@@ -406,7 +397,7 @@ public class InterceptorsGameTests {
     @GameTest(template = "pad")
     public static void ridersCanUseHandheldsInside(GameTestHelper helper) {
         InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
-        ServerPlayer rider = player(helper);
+        Player rider = player(helper);
         rider.moveTo(dom.position());
         helper.assertTrue(rider.startRiding(dom, true), "fake player couldn't get in");
         rider.setItemInHand(net.minecraft.world.InteractionHand.MAIN_HAND, new ItemStack(ModItems.IPAD.get()));
@@ -421,7 +412,7 @@ public class InterceptorsGameTests {
     @GameTest(template = "pad")
     public static void passengersGetTheLaptop(GameTestHelper helper) {
         InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
-        ServerPlayer driver = player(helper), passenger = player(helper);
+        Player driver = player(helper), passenger = player(helper);
         driver.moveTo(dom.position());
         passenger.moveTo(dom.position());
         helper.assertTrue(driver.startRiding(dom, true) && passenger.startRiding(dom, true), "couldn't seat both");

@@ -388,39 +388,65 @@ def rivets(img, xs, ys, size=2):
 
 
 def mat_paint():
+    """
+    Glossy car paint. A side panel reflects the world like a mirror: bright sky above a horizon line at about
+    chest height, the darker ground below it. That reflection is what makes paint read as paint. Panel seams,
+    a few fine scratches, and mud thrown up near the road.
+    """
     h, w = 3 * PPB, 4 * PPB
-    img = np.zeros((h, w, 3)) + 238
-    img += (fbm(h, w, 10, 5, 6)[..., None] - 0.5) * 14
+    y = np.arange(h)[:, None] / PPB  # blocks from the top of the texture
+    from_road = 3 - y
+    horizon = 1.25
+    sky = np.clip(1 - (from_road - horizon) / 1.6, 0, 1)
+    img = np.zeros((h, w, 3))
+    above = from_road > horizon
+    img += np.where(above[..., None], np.array([236, 240, 247]) + (sky[..., None] * 14), 0)
+    ground = np.clip((horizon - from_road) / horizon, 0, 1)
+    img += np.where(~above[..., None], np.array([214, 214, 210]) + ground[..., None] * 18, 0)
+    line = np.abs(from_road - horizon) < 0.035
+    img[line[:, 0]] -= 26
+    img += (fbm(h, w, 10, 5, 6)[..., None] - 0.5) * 8  # orange peel
     for x in range(0, w, 2 * PPB):
-        img[:, x:x + 2] = 120
-        img[:, x + 2:x + 3] = 250
-    img = streaks(img, 11, 0.18)
+        img[:, x:x + 2] = img[:, x:x + 2] * 0.55
+        img[:, x + 2:x + 3] = 252
+    img = streaks(img, 11, 0.08)
     img = scratches(img, 12, 10, [255, 255, 255], [222, 222, 222])
-    rng = np.random.default_rng(13)
     return mud(img, 14, PPB * 0.7, splatter=12)
 
 
 def mat_armor(seed, dents):
+    """
+    Bolted-on steel armor plate, painted matte: each plate bevelled (light top-left edge, shadowed bottom-right),
+    worn back to bare metal along its edges, welded or bolted at the seams, scuffed, rust running from the bolts,
+    and mud low down.
+    """
     h, w = 3 * PPB, 4 * PPB
-    img = np.zeros((h, w, 3)) + 62
-    img += (fbm(h, w, seed, 6, 10)[..., None] - 0.5) * 22
+    img = np.zeros((h, w, 3)) + 60
+    img += (fbm(h, w, seed, 6, 10)[..., None] - 0.5) * 18
+    img += (np.random.default_rng(seed).random((h, w, 1)) - 0.5) * 6  # matte grain
     pw, ph = 96, 64
+    yy, xx = np.mgrid[0:h, 0:w]
+    px, py = xx % pw, yy % ph
+    # bevel: 4px lit edge on the top and left of each plate, 4px shadow on the bottom and right
+    img[(px < 4) | (py < 4)] += 34
+    img[(px > pw - 5) | (py > ph - 5)] -= 26
+    img[(px < 1) | (py < 1)] = 16
+    # bare metal where the paint has worn off the plate edges
+    wear = fbm(h, w, seed + 3, 4, 20)
+    edge = ((px < 6) | (py < 6) | (px > pw - 7) | (py > ph - 7)) & (wear > 0.62)
+    img[edge] = img[edge] * 0.3 + np.array([150, 152, 150]) * 0.7
+    # weld beads along vertical seams, bolts along horizontal ones
     for x in range(0, w, pw):
-        img[:, x:x + 2] = 22
-        img[:, x + 2:x + 3] = 92
-        img = rivets(img, [x + 8 + i * 20 for i in range(4)], [12, ph + 12, 2 * ph + 12])
+        for y in range(0, h, 3):
+            img[y:y + 2, x + 1:x + 3] = [92, 90, 86] if (y // 3) % 2 else [42, 40, 38]
     for y in range(0, h, ph):
-        img[y:y + 2, :] = 22
-        img[y + 2:y + 3, :] = 92
+        img = rivets(img, [x + 10 + i * 18 for x in range(0, w, pw) for i in range(5)], [y + 9], 2)
     if dents:
         rng = np.random.default_rng(seed + 5)
-        yy, xx = np.mgrid[0:h, 0:w]
-        for _ in range(9):
+        for _ in range(11):
             cx, cy, r = rng.integers(0, w), rng.integers(0, h), rng.integers(8, 22)
             d = np.hypot(xx - cx, yy - cy) / r
-            shade = np.where(d < 1, (yy - cy) / r * 30 * (1 - d), 0)
-            img += shade[..., None]
-    # rust drips from rivets and seams
+            img += np.where(d < 1, (yy - cy) / r * 30 * (1 - d), 0)[..., None]
     rng = np.random.default_rng(seed + 7)
     for _ in range(26 if dents else 12):
         x, y = rng.integers(0, w), rng.integers(0, h - 30)

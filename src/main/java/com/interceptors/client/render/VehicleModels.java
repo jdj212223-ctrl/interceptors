@@ -26,6 +26,10 @@ public final class VehicleModels {
     public static final int SKIRT = 16;
     /** Spins around the first spinning box's centre (a radar dish). */
     public static final int SPIN = 32;
+    /** A wheel (tire or rim): drawn round and turned as the vehicle rolls. */
+    public static final int WHEEL = 64;
+    /** On the front axle: also turns left and right with the steering. */
+    public static final int FRONT = 128;
 
     /**
      * A box whose top face can be pulled in to make slopes: {@code insetFront/Back/Side} shrink the top face from
@@ -228,10 +232,22 @@ public final class VehicleModels {
         /** Four wheels: rubber tire plus alloy rim, front axle at {@code zf}, rear at {@code zr}. */
         Builder wheels(double halfTrack, double radius, double zf, double zr) {
             for (double z : new double[]{zf, zr}) {
-                in(Mat.TIRE, b -> b.pair(halfTrack - 0.28, 0, z - radius, halfTrack + 0.02, radius * 2, z + radius, NEUTRAL));
-                in(Mat.RIM, b -> b.pair(halfTrack + 0.02, radius * 0.2, z - radius * 0.8, halfTrack + 0.04, radius * 1.8, z + radius * 0.8, NEUTRAL));
+                int flags = WHEEL | (z == zf ? FRONT : 0);
+                in(Mat.TIRE, b -> b.pair(halfTrack - 0.28, 0, z - radius, halfTrack + 0.02, radius * 2, z + radius, NEUTRAL, flags));
+                in(Mat.RIM, b -> b.pair(halfTrack + 0.02, radius * 0.2, z - radius * 0.8, halfTrack + 0.04, radius * 1.8, z + radius * 0.8, NEUTRAL, flags));
             }
             return this;
+        }
+
+        /**
+         * Door shut-lines down both sides of the body (from {@code y0} to the window line {@code y1}) at each
+         * {@code seams} z, and a handle near the front edge of each door at the {@code handles} z positions.
+         */
+        Builder doors(double hw, double y0, double y1, double handleY, double[] seams, double[] handles) {
+            return in(Mat.PLASTIC, b -> {
+                for (double z : seams) b.pair(hw, y0, z, hw + 0.006, y1, z + 0.018, 0x101010);
+                for (double z : handles) b.pair(hw, handleY, z, hw + 0.03, handleY + 0.05, z + 0.16, 0x2A2A2A);
+            });
         }
 
         /** A ground spike that punches down with the anchors: hydraulic ram plus a foot. */
@@ -329,6 +345,7 @@ public final class VehicleModels {
                         .pair(1.05, 0.46, -2.5, 1.07, 0.54, 1.6, 0x2080FF, GLOW | RGB)
                         .pair(1.05, 1.68, -2.0, 1.07, 1.72, -0.55, 0x30E0FF, GLOW | RGB)
                         .box(-1.0, 0.25, -2.4, 1.0, 0.3, 2.4, 0x2060FF, GLOW | RGB))
+                .doors(1.05, 0.5, 1.15, 1.0, new double[]{0.33, 1.6}, new double[]{0.45})
                 .wheels(1.05, 0.38, 1.95, -1.75)
                 // leveling jacks
                 .in(Mat.STEEL, b -> b
@@ -363,6 +380,7 @@ public final class VehicleModels {
                 .in(Mat.GRILLE, b -> b.box(-0.6, 0.8, 2.45, 0.6, 1.2, 2.47, NEUTRAL))
                 .lights(0.97, 0.9, 2.45, -2.45)
                 .lightbar(0.7, 2.37, 0.8, 1.0)
+                .doors(1.0, 0.6, 1.3, 1.2, new double[]{-1.62, -0.18, 1.15}, new double[]{-1.5, -0.05})
                 .wheels(1.0, 0.42, 1.65, -1.6)
                 .spike(0.55, 1.0, 0.55).spike(0.55, -1.9, 0.55)
                 .decal("DOMINATOR", 0xE8E8E8, 1.03, 2.2, -1.3, 0.024)
@@ -393,6 +411,7 @@ public final class VehicleModels {
                 .in(Mat.GRILLE, b -> b.box(-0.6, 0.8, 2.5, 0.6, 1.2, 2.52, NEUTRAL))
                 .lights(1.0, 0.92, 2.5, -2.75)
                 .lightbar(0.75, 2.42, 0.9, 1.12)
+                .doors(1.05, 0.6, 1.35, 1.25, new double[]{-1.72, -0.08, 1.28}, new double[]{-1.6, 0.05})
                 .wheels(1.02, 0.45, 1.75, -1.85)
                 .spike(0.55, 1.1, 0.55).spike(0.55, -2.2, 0.55)
                 .decal("DOMINATOR 2", 0xFF8A3A, 1.09, 1.75, -1.4, 0.022)
@@ -432,6 +451,7 @@ public final class VehicleModels {
                 .in(Mat.GRILLE, b -> b.box(-0.55, 0.7, 3.0, 0.55, 1.0, 3.03, NEUTRAL))
                 .lights(1.0, 0.75, 3.0, -3.0)
                 .lightbar(0.55, 2.5, 0.85, 1.02)
+                .doors(1.15, 0.65, 1.25, 1.12, new double[]{-1.6, -0.38, 1.5}, new double[]{-1.35, -0.1})
                 .wheels(1.08, 0.5, 2.0, -2.1)
                 // four anchor points, like the overlay: front corner, behind the front wheel, ahead of the rear wheel, rear corner
                 .spike(0.6, 2.75, 0.6).spike(0.6, 1.35, 0.6).spike(0.6, -1.45, 0.6).spike(0.6, -2.85, 0.6)
@@ -457,6 +477,7 @@ public final class VehicleModels {
                 .in(Mat.PLASTIC, s -> s.box(-0.3, 2.57, 0.3, 0.3, 2.9, 0.9, NEUTRAL))
                 .window(-0.12, 2.66, 0.9, 0.12, 2.82, 0.95)
                 .lights(1.1, 1.05, 2.95, -3.0)
+                .doors(1.15, 0.7, 1.5, 1.4, new double[]{-0.58, 1.38}, new double[]{-0.4})
                 .wheels(1.12, 0.55, 2.0, -2.0)
                 .spike(0.6, 1.2, 0.65).spike(0.6, -2.4, 0.65)
                 .decal("T.I.V.", 0xE8E2C8, 1.16, 2.35, -1.8, 0.05);
@@ -490,6 +511,7 @@ public final class VehicleModels {
                 .in(Mat.GRILLE, b -> b.box(-0.6, 0.8, 3.2, 0.6, 1.3, 3.22, NEUTRAL))
                 .lights(1.05, 0.95, 3.2, -3.2)
                 .lightbar(0.8, 2.57, 1.6, 1.85)
+                .doors(1.1, 0.65, 1.45, 1.35, new double[]{0.65, 2.25}, new double[]{0.8})
                 .wheels(1.05, 0.5, 2.5, -2.3)
                 .decal("DOPPLER ON WHEELS", 0x1E3C82, 1.11, 1.38, 1.45, 0.016)
                 .build();
@@ -510,6 +532,7 @@ public final class VehicleModels {
                 .in(Mat.GRILLE, b -> b.box(-0.5, 0.6, 2.1, 0.5, 0.85, 2.13, NEUTRAL))
                 .in(Mat.PLAIN, b -> b.box(-0.3, 0.75, -2.23, 0.3, 0.9, -2.21, 0xF2E6A0))
                 .lights(0.95, 0.65, 2.1, -2.2)
+                .doors(0.95, 0.4, 1.0, 0.9, new double[]{-1.22, -0.25, 0.72}, new double[]{-1.1, -0.12})
                 .wheels(0.95, 0.32, 1.4, -1.4)
                 .build();
     }
