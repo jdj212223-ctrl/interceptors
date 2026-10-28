@@ -2,6 +2,7 @@ package com.interceptors.registry;
 
 import com.interceptors.Interceptors;
 import com.interceptors.vehicle.InterceptorVehicle;
+import com.interceptors.vehicle.StormChopper;
 import com.interceptors.vehicle.VehicleSpec;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.world.entity.EntityType;
@@ -21,9 +22,11 @@ public final class ModEntities {
     static {
         for (VehicleSpec spec : VehicleSpec.ALL) {
             VEHICLES.put(spec.id(), ENTITIES.register(spec.id(),
-                    () -> EntityType.Builder.<InterceptorVehicle>of((type, level) -> new InterceptorVehicle(type, level, spec), MobCategory.MISC)
+                    () -> EntityType.Builder.<InterceptorVehicle>of((type, level) -> spec.flies()
+                                    ? new StormChopper(type, level, spec) : new InterceptorVehicle(type, level, spec), MobCategory.MISC)
                             .sized(spec.width(), spec.height())
-                            .clientTrackingRange(10)
+                            // The chopper is seen from far off, so its camera feed reaches the ground team.
+                            .clientTrackingRange(spec.flies() ? 32 : 10)
                             .build(spec.id())));
         }
     }

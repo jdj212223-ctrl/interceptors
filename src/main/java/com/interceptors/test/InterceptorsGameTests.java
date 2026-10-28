@@ -305,6 +305,21 @@ public class InterceptorsGameTests {
         helper.succeed();
     }
 
+    /** The driver's dash screen is never buried inside the dashboard: nothing solid in front of its face. */
+    @GameTest(template = "pad")
+    public static void dashScreensAreVisible(GameTestHelper helper) {
+        for (VehicleSpec spec : VehicleSpec.ALL) {
+            Vec3 seat = spec.seats().get(0);
+            double z = seat.z + VehicleModels.DASH_AHEAD - 0.034, y = seat.y + (VehicleModels.DASH_BOTTOM + VehicleModels.DASH_TOP) / 2;
+            for (VehicleModels.Box b : VehicleModels.get(spec.id())) {
+                if ((b.flags() & (VehicleModels.CLEAR | VehicleModels.ANCHOR)) != 0) continue;
+                boolean buried = 0 > b.x0() && 0 < b.x1() && y > b.y0() && y < b.y1() && z > b.z0() && z < b.z1();
+                helper.assertTrue(!buried, spec.id() + " dash screen is buried in " + b);
+            }
+        }
+        helper.succeed();
+    }
+
     /** Seat height to eye height: a player rides 0.6 below the seat point and their eyes are 1.62 above their feet. */
     private static final double EYE_ABOVE_SEAT = 1.62 - 0.6;
 
@@ -534,6 +549,32 @@ public class InterceptorsGameTests {
         helper.assertTrue(date != null && date.matches("[A-Z ]+ \\d{1,2}, 20\\d\\d"), "date looks wrong: " + date);
         int year = Integer.parseInt(date.substring(date.length() - 4));
         helper.assertTrue(year >= Storms.FIRST_YEAR, "year before 2026: " + date);
+        helper.succeed();
+    }
+
+    /** Nobody flying: the Storm Chopper autorotates down instead of hanging in the air. */
+    @GameTest(template = "pad", timeoutTicks = 80)
+    public static void chopperSinksWithoutAPilot(GameTestHelper helper) {
+        InterceptorVehicle chopper = park(helper, VehicleSpec.STORM_CHOPPER);
+        helper.assertTrue(chopper instanceof com.interceptors.vehicle.StormChopper, "the chopper isn't a helicopter");
+        chopper.moveTo(chopper.getX(), chopper.getY() + 2.5, chopper.getZ());
+        double start = chopper.getY();
+        helper.runAfterDelay(40, () -> {
+            helper.assertTrue(chopper.getY() < start - 0.5, "unpiloted chopper didn't come down: " + (start - chopper.getY()));
+            helper.succeed();
+        });
+    }
+
+    @GameTest(template = "pad")
+    public static void probeLauncherOnlyOnTheDom3(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        helper.assertTrue(dom.probesLeft() == InterceptorVehicle.MAX_PROBES, "Dom 3 should start with a full launcher");
+        helper.assertTrue("message.interceptors.probe_range".equals(dom.launchProbes()), "launched with no tornado in range");
+        helper.assertTrue(dom.probesLeft() == InterceptorVehicle.MAX_PROBES, "probes used up with nothing to probe");
+        for (VehicleSpec other : VehicleSpec.ALL) {
+            if (other != VehicleSpec.DOMINATOR_3) helper.assertTrue(!other.probes() && !other.airSuspension(), other.id() + " shouldn't have Dom 3 gear");
+        }
+        helper.assertTrue("message.interceptors.no_launcher".equals(park(helper, VehicleSpec.DOMINATOR_1).launchProbes()), "Dom 1 launched probes");
         helper.succeed();
     }
 

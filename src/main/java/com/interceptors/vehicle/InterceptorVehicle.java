@@ -65,6 +65,14 @@ public class InterceptorVehicle extends Entity {
     public static final double SHATTER_MPH = 111;
     public static final net.minecraft.resources.ResourceKey<net.minecraft.world.damagesource.DamageType> FLYING_GLASS =
             net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DAMAGE_TYPE, com.interceptors.Interceptors.id("flying_glass"));
+    /** Weather probes left in the Dom 3's launcher, and the readings from the last launch. */
+    private static final EntityDataAccessor<Integer> PROBES = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.INT);
+    private static final EntityDataAccessor<CompoundTag> PROBE_DATA = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.COMPOUND_TAG);
+    public static final int MAX_PROBES = 8, PROBES_PER_LAUNCH = 4;
+    /** How far the launcher can throw probes into a tornado, blocks. */
+    public static final double PROBE_RANGE = 400;
+    /** How far the Dom 3's airbags lower the shell when fully anchored. */
+    public static final float AIRBAG_DROP = 0.15f;
     /** Who sits where: "s0".."s4" hold the UUID of the rider in that seat. Seat 0 is the driver's. */
     private static final EntityDataAccessor<CompoundTag> SEATS = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.COMPOUND_TAG);
     /** Soft ground fills the hydraulics: full speed through mud jams them in about two minutes, rain doubles it. */
@@ -78,10 +86,10 @@ public class InterceptorVehicle extends Entity {
 
     private final VehicleSpec spec;
     /** Forward speed in blocks per tick; negative is reversing. */
-    private float speed;
+    protected float speed;
     /** Sideways/vertical shove left over from the wind, so a gust carries on for a moment. */
-    private Vec3 drift = Vec3.ZERO;
-    private float deltaRotation;
+    protected Vec3 drift = Vec3.ZERO;
+    protected float deltaRotation;
     /** Client only: how far the wheels have turned (radians) and the front wheels' steering angle (degrees). */
     private float wheelSpin, prevWheelSpin, steer, prevSteer;
     /** Wheel radius used to turn distance travelled into rotation. */
@@ -95,7 +103,7 @@ public class InterceptorVehicle extends Entity {
     @Nullable
     private Vec3 lastTickPos;
     /** Wind the vehicle last felt, mph. Read by the dashboard. */
-    private Vec3 lastWind = Vec3.ZERO;
+    protected Vec3 lastWind = Vec3.ZERO;
     /** GameTests set this to fake a tornado; null means ask PMWeather. */
     @Nullable
     public Vec3 forcedWind;
@@ -130,6 +138,8 @@ public class InterceptorVehicle extends Entity {
         builder.define(DISH, false);
         builder.define(SEATS, new CompoundTag());
         builder.define(LEXAN, false);
+        builder.define(PROBES, MAX_PROBES);
+        builder.define(PROBE_DATA, new CompoundTag());
     }
 
     public boolean lexanUp() {
@@ -185,6 +195,52 @@ public class InterceptorVehicle extends Entity {
             }
         }
         tellRiders("message.interceptors.windows_blown");
+    }
+
+    public int probesLeft() {
+        return spec.probes() ? entityData.get(PROBES) : 0;
+    }
+
+    /** The last probe launch: peak/average wind (mph), probes, distance, and the game time it happened. Empty if none. */
+    public CompoundTag probeData() {
+        return entityData.get(PROBE_DATA);
+    }
+
+    /**
+     * Fire four weather probes into the nearest tornado: they ride into the circulation and radio back the wind
+     * they measure. Returns null if it worked, or why not.
+     */
+    @Nullable
+    public String launchProbes() {
+        if (!spec.probes()) return "message.interceptors.no_launcher";
+        if (probesLeft() < PROBES_PER_LAUNCH) return "message.interceptors.no_probes";
+        Storms.StormInfo t = Storms.nearestTornado(level(), position());
+        if (t == null || t.distance() > PROBE_RANGE) return "message.interceptors.probe_range";
+        entityData.set(PROBES, probesLeft() - PROBES_PER_LAUNCH);
+        double peak = 0, total = 0;
+        for (int i = 0; i < PROBES_PER_LAUNCH; i++) {
+            double a = Math.PI * 2 * i / PROBES_PER_LAUNCH, r = t.width() / 4;
+            Vec3 at = t.position().add(Math.cos(a) * r, 2, Math.sin(a) * r);
+            double mph = Storms.windAt(level(), at).horizontalDistance();
+            peak = Math.max(peak, mph);
+            total += mph;
+        }
+        CompoundTag data = new CompoundTag();
+        data.putInt("Peak", (int) peak);
+        data.putInt("Average", (int) (total / PROBES_PER_LAUNCH));
+        data.putInt("Count", PROBES_PER_LAUNCH);
+        data.putInt("Distance", (int) t.distance());
+        data.putLong("Time", level().getGameTime());
+        entityData.set(PROBE_DATA, data);
+        if (level() instanceof ServerLevel server) {
+            Vec3 from = position().add(0, spec.height() + 0.3, 0), to = t.position().add(0, 3, 0);
+            for (int i = 0; i <= 30; i++) {
+                Vec3 p = from.lerp(to, i / 30.0).add(0, Math.sin(Math.PI * i / 30.0) * 12, 0);
+                server.sendParticles(ParticleTypes.FIREWORK, p.x, p.y, p.z, 2, 0.1, 0.1, 0.1, 0.01);
+            }
+        }
+        level().playSound(null, getX(), getY() + 2, getZ(), SoundEvents.FIREWORK_ROCKET_LAUNCH, SoundSource.NEUTRAL, 2.0f, 0.8f);
+        return null;
     }
 
     // ------------------------------------------------------------------ fixed seats
@@ -396,6 +452,8 @@ public class InterceptorVehicle extends Entity {
         entityData.set(DISH, tag.getBoolean("Dish"));
         entityData.set(SEATS, tag.getCompound("Seats"));
         entityData.set(LEXAN, tag.getBoolean("Lexan"));
+        entityData.set(PROBES, tag.contains("Probes") ? tag.getInt("Probes") : MAX_PROBES);
+        entityData.set(PROBE_DATA, tag.getCompound("ProbeData"));
         entityData.set(DEPLOY, tag.getInt("Deploy"));
     }
 
@@ -413,6 +471,8 @@ public class InterceptorVehicle extends Entity {
         tag.putBoolean("Dish", entityData.get(DISH));
         tag.put("Seats", entityData.get(SEATS).copy());
         tag.putBoolean("Lexan", lexanUp());
+        tag.putInt("Probes", entityData.get(PROBES));
+        tag.put("ProbeData", probeData().copy());
         tag.putInt("Deploy", getDeploy());
     }
 
@@ -554,6 +614,14 @@ public class InterceptorVehicle extends Entity {
             }
             return InteractionResult.sidedSuccess(level().isClientSide);
         }
+        if (stack.is(Items.COPPER_INGOT) && spec.probes() && probesLeft() < MAX_PROBES) {
+            if (!level().isClientSide) {
+                entityData.set(PROBES, probesLeft() + 1);
+                if (!player.getAbilities().instabuild) stack.shrink(1);
+                player.displayClientMessage(Component.translatable("message.interceptors.probe_loaded", probesLeft(), MAX_PROBES), true);
+            }
+            return InteractionResult.sidedSuccess(level().isClientSide);
+        }
         if (stack.is(Items.IRON_INGOT) && getDamage() > 0) {
             if (!level().isClientSide) {
                 setDamage(getDamage() - spec.health() / 6f);
@@ -664,7 +732,10 @@ public class InterceptorVehicle extends Entity {
         int seat = seatOf(passenger);
         // Until the seat list reaches this computer, fall back to the boarding order.
         if (seat < 0) seat = Math.max(0, getPassengers().indexOf(passenger));
-        return spec.seats().get(Math.min(seat, spec.seats().size() - 1)).yRot(-getYRot() * Mth.DEG_TO_RAD);
+        Vec3 at = spec.seats().get(Math.min(seat, spec.seats().size() - 1));
+        // The Dom 3's airbags let the whole cab, riders and all, down as it anchors.
+        if (spec.airSuspension()) at = at.subtract(0, AIRBAG_DROP * anchorExtension(), 0);
+        return at.yRot(-getYRot() * Mth.DEG_TO_RAD);
     }
 
     @Override

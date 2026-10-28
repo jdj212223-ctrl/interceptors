@@ -4,6 +4,7 @@ import com.interceptors.compat.Storms;
 import com.interceptors.vehicle.AnchorStatus;
 import com.interceptors.vehicle.InterceptorVehicle;
 import com.interceptors.vehicle.Part;
+import com.interceptors.vehicle.StormChopper;
 import com.interceptors.vehicle.VehicleSpec;
 import com.interceptors.vehicle.WindPhysics;
 import com.mojang.blaze3d.vertex.PoseStack;
@@ -49,6 +50,12 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
     public void render(InterceptorVehicle vehicle, float yaw, float partialTick, PoseStack pose, MultiBufferSource buffers, int light) {
         pose.pushPose();
         pose.mulPose(Axis.YP.rotationDegrees(-yaw));
+        if (vehicle instanceof StormChopper chopper) {
+            // Nose dips forward as the helicopter picks up speed.
+            pose.translate(0, 1.2, 0);
+            pose.mulPose(Axis.XP.rotationDegrees(chopper.tilt()));
+            pose.translate(0, -1.2, 0);
+        }
         float hurt = vehicle.getHurtTime() - partialTick;
         if (hurt > 0) pose.mulPose(Axis.ZP.rotationDegrees(Mth.sin(hurt) * hurt * 0.25f));
 
@@ -60,6 +67,10 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         Map<Mat, List<VehicleModels.Box>> groups = grouped(vehicle.spec());
         float health = vehicle.healthFraction();
         boolean lexan = vehicle.spec().hasLexan() && vehicle.lexanUp();
+        // The Dom 3's airbags let the whole shell down toward the ground as it anchors.
+        float drop = vehicle.spec().airSuspension() ? InterceptorVehicle.AIRBAG_DROP * extension : 0;
+        // A helicopter's rotor whirls when someone's flying, idles otherwise; the DOW dish turns slowly.
+        float spinRate = vehicle.spec().flies() ? (vehicle.getControllingPassenger() != null ? 45 : 6) : 3;
 
         // Solid boxes first, then the see-through glass on top of them.
         for (int pass = 0; pass < 2; pass++) {
@@ -75,6 +86,7 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                     if (health < TORN_BELOW && tornOff(b)) continue;
                     if (vc == null) vc = buffers.getBuffer(pass == 0 ? RenderType.entityCutoutNoCull(mat.texture) : RenderType.entityTranslucent(mat.texture));
                     pose.pushPose();
+                    if (drop > 0 && (f & (VehicleModels.WHEEL | VehicleModels.ANCHOR)) == 0) pose.translate(0, -drop, 0);
                     // Spikes and jacks start tucked up in the body and slide down as they deploy.
                     if ((f & VehicleModels.ANCHOR) != 0) pose.translate(0, (1 - extension) * 0.55f, 0);
                     if ((f & VehicleModels.SKIRT) != 0) pose.translate(0, 0.15f - 0.27f * extension, 0);
@@ -93,7 +105,7 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                     if ((f & VehicleModels.SPIN) != 0 && pivot != null) {
                         float px = (pivot.x0() + pivot.x1()) / 2, pz = (pivot.z0() + pivot.z1()) / 2;
                         pose.translate(px, 0, pz);
-                        pose.mulPose(Axis.YP.rotationDegrees(time * 3f));
+                        pose.mulPose(Axis.YP.rotationDegrees(time * spinRate));
                         pose.translate(-px, 0, -pz);
                     }
                     int rgb = (f & VehicleModels.RGB) != 0 ? rainbow(time, b.rgb()) : mat.tinted ? b.rgb() : 0xFFFFFF;
@@ -104,9 +116,12 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                 }
             }
         }
+        pose.pushPose();
+        pose.translate(0, -drop, 0);
         if (health >= TORN_BELOW) decals(id, pose, buffers, light);
         if (vehicle.hasInstalledDish()) dish(vehicle.spec(), pose, buffers, light);
         dashboard(vehicle, pose, buffers);
+        pose.popPose();
         pose.popPose();
         super.render(vehicle, yaw, partialTick, pose, buffers, light);
     }

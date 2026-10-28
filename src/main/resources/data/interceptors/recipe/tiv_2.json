@@ -1,0 +1,27 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "KKK",
+    "KDK",
+    "OPO"
+  ],
+  "key": {
+    "K": {
+      "item": "minecraft:iron_block"
+    },
+    "D": {
+      "item": "minecraft:daylight_detector"
+    },
+    "O": {
+      "item": "minecraft:obsidian"
+    },
+    "P": {
+      "item": "minecraft:lightning_rod"
+    }
+  },
+  "result": {
+    "id": "interceptors:tiv_2",
+    "count": 1
+  }
+}

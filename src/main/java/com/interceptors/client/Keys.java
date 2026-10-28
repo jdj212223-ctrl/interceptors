@@ -25,5 +25,10 @@ public final class Keys {
     public static final KeyMapping LEXAN = new KeyMapping("key.interceptors.lexan", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_K, CATEGORY);
 
+    public static final KeyMapping PROBES = new KeyMapping("key.interceptors.probes", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_P, CATEGORY);
+    public static final KeyMapping DESCEND = new KeyMapping("key.interceptors.descend", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, CATEGORY);
+
     private Keys() {}
 }

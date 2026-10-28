@@ -65,6 +65,8 @@ public final class VehicleModels {
         MODELS.put("tiv_1", tiv1());
         MODELS.put("doppler_on_wheels", dopplerOnWheels());
         MODELS.put("rental_car", rentalCar());
+        MODELS.put("tiv_2", tiv2());
+        MODELS.put("storm_chopper", stormChopper());
     }
 
     public static List<Box> get(String id) {
@@ -521,7 +523,7 @@ public final class VehicleModels {
     private static Model rentalCar() {
         int silver = 0xC4CAD2;
         return new Builder()
-                .tub(0.95, 0.35, 0.45, 1.0, -1.25, 0.75, 0.6, silver)
+                .tub(0.95, 0.35, 0.45, 1.0, -1.25, 0.75, 0.65, silver)
                 .wedge(-0.95, 0.35, 0.75, 0.95, 1.0, 2.1, silver, 0.15, 0, 0.04, 0.12)
                 .wedge(-0.95, 0.35, -2.2, 0.95, 1.1, -1.25, silver, 0, 0.1, 0.04, 0)
                 .cab(0.92, 1.0, 1.9, -1.25, 0.75, silver)
@@ -534,6 +536,79 @@ public final class VehicleModels {
                 .lights(0.95, 0.65, 2.1, -2.2)
                 .doors(0.95, 0.4, 1.0, 0.9, new double[]{-1.22, -0.25, 0.72}, new double[]{-1.1, -0.12})
                 .wheels(0.95, 0.32, 1.4, -1.4)
+                .build();
+    }
+
+    /** TIV 2-style intercept tank, our own design: a low wedge of riveted armor and a rotating camera turret. */
+    private static Model tiv2() {
+        int body = 0xB4BAAC;
+        Builder b = new Builder()
+                .mat(Mat.ARMOR)
+                .tub(1.2, 0.6, 0.9, 1.45, -3.0, 1.3, 0.85, body)
+                .wedge(-1.15, 0.6, 1.3, 1.15, 1.6, 3.0, body, 0.9, 0, 0.1, 0.7)
+                .room(1.2, 1.45, 2.45, -3.0, -0.5, body)
+                .wedge(-1.2, 2.33, -3.0, 1.2, 2.5, -0.5, body, 0, 0.3, 0.3, 0)
+                .cab(1.15, 1.45, 2.35, -0.5, 1.3, body)
+                .box(-1.15, 2.35, 1.2, 1.15, 2.47, 1.7, body)
+                // rotating armored camera turret on the roof
+                .box(-0.45, 2.47, -0.6, 0.45, 2.7, 0.3, body, SPIN)
+                .box(-0.35, 2.7, -0.5, 0.35, 3.05, 0.2, body, SPIN)
+                .in(Mat.GLASS, g -> g.box(-0.2, 2.8, 0.2, 0.2, 2.95, 0.24, NEUTRAL, SPIN))
+                .in(Mat.STEEL, g -> g
+                        .pair(1.2, 0.15, -2.9, 1.26, 1.0, 2.6, 0xA0A4A8, SKIRT)
+                        .box(-1.15, 0.35, 2.9, 1.15, 0.8, 3.1, 0x8A8E80))
+                .lights(1.1, 0.75, 3.0, -3.0)
+                .doors(1.2, 0.7, 1.45, 1.3, new double[]{-0.48, 1.28}, new double[]{-0.3})
+                .wheels(1.15, 0.55, 2.0, -2.0)
+                .spike(0.6, 1.2, 0.6).spike(0.6, -2.4, 0.6)
+                .decal("TIV 2", 0xE8E2C8, 1.21, 2.3, -1.8, 0.05);
+        for (double y : new double[]{1.75, 1.98, 2.28}) {
+            b.in(Mat.STEEL, g -> g.pair(1.15, y, -0.45, 1.2, y + 0.05, 1.25, 0x8A8E80).box(-1.1, y, 1.3, 1.1, y + 0.05, 1.35, 0x8A8E80));
+        }
+        return b.build();
+    }
+
+    /** Storm Chopper 4: a white storm-news helicopter with a camera ball under the nose and a spinning rotor. */
+    private static Model stormChopper() {
+        int blue = 0x1E50C8;
+        return new Builder()
+                .tub(0.75, 0.35, 0.4, 0.9, -0.77, 1.5, 1.35, WHITE)
+                .wedge(-0.7, 0.35, 1.5, 0.7, 0.9, 2.2, WHITE, 0.4, 0, 0.15, 0.3)
+                .cab(0.75, 0.9, 1.95, -0.7, 1.5, WHITE)
+                .box(-0.75, 0.9, -0.77, 0.75, 2.07, -0.7, WHITE)
+                .wedge(-0.7, 2.07, -0.7, 0.7, 2.35, 1.2, WHITE, 0.5, 0.2, 0.2, 0.1)
+                .box(-0.5, 2.07, -1.4, 0.5, 2.3, -0.7, WHITE)
+                // tail boom, fin, stabilizer, tail rotor
+                .box(-0.15, 1.4, -4.6, 0.15, 1.75, -0.77, WHITE)
+                .box(-0.04, 1.6, -4.8, 0.04, 2.6, -4.3, WHITE)
+                .box(-0.6, 1.5, -4.1, 0.6, 1.56, -3.8, WHITE)
+                .in(Mat.PAINT, b -> b
+                        .pair(0.75, 0.6, -0.77, 0.77, 0.68, 2.0, blue)
+                        .pair(0.75, 0.68, -0.77, 0.77, 0.72, 2.0, RED)
+                        .pair(0.15, 1.52, -4.5, 0.16, 1.6, -0.8, blue))
+                .in(Mat.PLASTIC, b -> b
+                        .box(0.15, 1.3, -4.75, 0.18, 2.1, -4.6, NEUTRAL)
+                        .box(-0.15, 0.15, 1.8, 0.15, 0.4, 2.1, NEUTRAL))
+                .window(-0.1, 0.2, 2.1, 0.1, 0.35, 2.12)
+                // skids and struts
+                .in(Mat.STEEL, b -> b
+                        .pair(0.55, 0.0, -1.2, 0.61, 0.06, 1.3, STEEL_TINT)
+                        .pair(0.5, 0.06, 0.6, 0.56, 0.4, 0.66, STEEL_TINT)
+                        .pair(0.5, 0.06, -0.6, 0.56, 0.4, -0.54, STEEL_TINT)
+                        .box(-0.06, 2.35, 0.2, 0.06, 2.6, 0.3, STEEL_TINT)
+                        .box(-0.15, 2.6, 0.1, 0.15, 2.7, 0.4, STEEL_TINT, SPIN))
+                // two long rotor blades crossing at the hub
+                .in(Mat.PLASTIC, b -> b
+                        .box(-0.08, 2.65, -3.25, 0.08, 2.69, 3.75, 0x202020, SPIN)
+                        .box(-3.5, 2.65, 0.17, 3.5, 2.69, 0.33, 0x202020, SPIN))
+                // nav lights: red on the left, green on the right
+                .in(Mat.PLAIN, b -> b
+                        .box(0.75, 1.4, 1.2, 0.79, 1.46, 1.26, 0xFF2020, GLOW)
+                        .box(-0.79, 1.4, 1.2, -0.75, 1.46, 1.26, 0x20FF20, GLOW)
+                        .box(-0.04, 2.6, -4.85, 0.04, 2.66, -4.8, 0xFFFFFF, GLOW))
+                .doors(0.75, 0.4, 0.9, 0.8, new double[]{-0.7, 0.35, 1.45}, new double[]{0.2, 1.3})
+                .decal("STORM CHOPPER 4", 0x1E50C8, 0.77, 0.86, 0.4, 0.011)
+                .decal("4", 0x1E50C8, 0.16, 1.74, -2.7, 0.03)
                 .build();
     }
 

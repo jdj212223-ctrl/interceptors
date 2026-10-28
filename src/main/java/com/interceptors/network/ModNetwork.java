@@ -51,6 +51,7 @@ public final class ModNetwork {
             case VehicleActionPayload.HORN -> vehicle.honk();
             case VehicleActionPayload.LIGHTS -> vehicle.toggleLights();
             case VehicleActionPayload.LEXAN -> say(player, vehicle.toggleLexan());
+            case VehicleActionPayload.PROBES -> say(player, vehicle.launchProbes());
             default -> {}
         }
     }

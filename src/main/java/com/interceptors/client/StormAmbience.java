@@ -47,6 +47,10 @@ public final class StormAmbience {
         return loop;
     }
 
+    public static float roarLevel() {
+        return roarLevel;
+    }
+
     public static float hailLevel() {
         return hailLevel;
     }

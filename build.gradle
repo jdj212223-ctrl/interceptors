@@ -23,6 +23,8 @@ dependencies {
     runtimeOnly files(project.pmweather_jar)
     // MCEF (a Chromium browser) is optional: only the Web app's browser view touches it, and only when it's installed.
     compileOnly files(project.mcef_jar)
+    // Simple Voice Chat is optional too: its plugin API ships inside the mod jar, compile-only here.
+    compileOnly files(project.voicechat_jar)
 }
 
 neoForge {

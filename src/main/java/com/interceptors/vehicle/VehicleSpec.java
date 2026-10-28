@@ -52,7 +52,19 @@ public record VehicleSpec(String id, float health, float grip, float anchorHold,
     public static final VehicleSpec DOPPLER_ON_WHEELS = new VehicleSpec("doppler_on_wheels", 90, 85, 130, 115,
             0.70f, 0.016f, 3.0f, 3.2f, 2.6f, List.of(new Vec3(0.55, 1.1, 1.5), new Vec3(-0.55, 1.1, 1.5), new Vec3(0, 1.1, 1.5)), "stabilizer jacks", 40, 1, false);
 
-    public static final List<VehicleSpec> ALL = List.of(GAMING_VAN, DOMINATOR_1, DOMINATOR_2, DOMINATOR_3, TIV_1, DOPPLER_ON_WHEELS, RENTAL_CAR);
+    // TIV 2-style intercept tank, our own design: a low wedge of armor with a rotating camera turret on the roof.
+    public static final VehicleSpec TIV_2 = new VehicleSpec("tiv_2", 240, 130, 220, 230,
+            0.55f, 0.013f, 2.6f, 3.2f, 2.5f, seats(1.1, 0.4, 1.1, -1.3, 1), "skirts and spikes", 30, 0.5f, false);
+
+    // "Dom 4": a Chopper 4-style storm news helicopter that films tornadoes from the air for the ground team.
+    // Light, fast, and the wind throws it around.
+    public static final VehicleSpec STORM_CHOPPER = new VehicleSpec("storm_chopper", 70, 70, 70, 90,
+            1.3f, 0.025f, 3.5f, 3.0f, 2.6f,
+            List.of(new Vec3(0.35, 0.55, 0.9), new Vec3(-0.35, 0.55, 0.9), new Vec3(0.35, 0.55, -0.15), new Vec3(-0.35, 0.55, -0.15)),
+            "none", 0, 0, false);
+
+    public static final List<VehicleSpec> ALL = List.of(GAMING_VAN, DOMINATOR_1, DOMINATOR_2, DOMINATOR_3, TIV_1, TIV_2,
+            DOPPLER_ON_WHEELS, RENTAL_CAR, STORM_CHOPPER);
 
     /** Driver front-left, passenger front-right, then a rear row of one (middle) or three seats. */
     private static List<Vec3> seats(double y, double frontZ, double rearY, double rearZ, int rear) {
@@ -65,6 +77,20 @@ public record VehicleSpec(String id, float health, float grip, float anchorHold,
     /** Only Dominator 1 has the Lexan shield that rolls up over the windows, like at Aurora in 2009. */
     public boolean hasLexan() {
         return this == DOMINATOR_1;
+    }
+
+    public boolean flies() {
+        return this == STORM_CHOPPER;
+    }
+
+    /** The Dom 3's airbag suspension drops the whole shell toward the ground as it anchors. */
+    public boolean airSuspension() {
+        return this == DOMINATOR_3;
+    }
+
+    /** The Dom 3 carries a launcher for weather probes ("Dorothy"-style) to fire into the tornado. */
+    public boolean probes() {
+        return this == DOMINATOR_3;
     }
 
     public boolean hasAnchors() {

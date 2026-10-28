@@ -15,7 +15,9 @@ Needs **PMWeather 0.17.13 or newer**. Works next to the Tornado Intercept addon.
 | Dominator 3 (Fail 3) | 220 | 130 mph | 230 mph | 220 mph | The big angular armored truck: skirts plus three pairs of spikes. |
 | TIV 1 | 200 | 120 mph | 200 mph | 200 mph | The first Tornado Intercept Vehicle. Slowest, louvered armor glass, 2 seats. |
 | Doppler on Wheels | 90 | 85 mph | 130 mph | 115 mph | Radar truck with a spinning dish; screens inside see twice as far. 2 seats. |
+| TIV 2 | 240 | 130 mph | 220 mph | 230 mph | Our own TIV 2-style design: a low armored wedge with a rotating camera turret. 3 seats. |
 | Rental Car | 30 | 55 mph | no anchors | 70 mph | For when your interceptor is wrecked and you're stranded. Cheap, keeps you chasing. |
+| Storm Chopper 4 | 70 | flies | no anchors | 90 mph | "Dom 4": a storm news helicopter. Space climbs, X descends; films the tornado for the ground team (Chopper Cam app). Strong wind throws it around; with no pilot or a dead engine it autorotates down. 4 seats. |
 
 The Gaming Camper Van is hollow inside: wood paneling, a gaming desk with a big monitor and RGB tower, a sofa bed,
 kitchenette and fridge, red SUBSCRIBE lettering on the sides, and a roof solar battery that runs its screens (it
@@ -78,6 +80,12 @@ with iron ingots. Turn failures down or off in `interceptors-server.toml` (`fail
   follower counter and viewer chat, and a bottom strip with the watch number and its countdown, the in-game date
   and time, and a scrolling ticker of the live storm data.
 
+## Dominator 3 gear
+
+- **Airbag suspension:** as the anchors go down, the whole shell (riders and all) drops toward the road.
+- **Weather probes:** press **P** within 400 m of a tornado to fire 4 probes into it. They report the peak and
+  average wind inside; read them in the **Probes** app. 8 probes in the launcher; reload with copper ingots.
+
 ## Lexan window shield (Aurora, 2009)
 
 Dominator 1 has a Lexan shield that rolls up over the windows, like the real one at Aurora, Nebraska: press **K**.
@@ -101,6 +109,8 @@ about 2.5 hearts, back seats 1), with blocky red bits in front of them and a red
 | U | Underglow lights on / off |
 | B | Storm-chase livestream overlay on / off |
 | K | Lexan window shield up / down (Dominator 1) |
+| P | Launch weather probes (Dominator 3) |
+| Space / X | Helicopter: climb / descend |
 | Sneak + punch | Pack the vehicle back into its item |
 
 All keys can be changed under Options > Controls > Interceptors. They are normal Minecraft keys, so Vivecraft can map
@@ -114,13 +124,19 @@ The computer and laptop blocks, the MacBook and iPad items, and the car display 
 - **Intercept**: a big arrow to the nearest tornado, its distance, EF rating, how fast it's coming at you and when it
   arrives, and a banner from KEEP CHASING to YOU ARE IN THE TORNADO.
 - **Storms**: every storm, tornadoes first.
+- **Chopper Cam**: the live feed from the nearest Storm Chopper: a sky view around it with the storms, tornadoes
+  and you, plus its altitude, speed and heading.
+- **Probes**: the Dominator 3's probe readings.
 - **Tornado Dodge**: a mini game (on computers, laptops, tablets and the van's car display).
 - **Web**: with the optional MCEF mod installed, a real web browser: back, forward, reload, home, an address bar
   that also searches Google, quick links (YouTube, NWS radar, SPC), and mouse, scroll and keyboard straight
   through to the page. Without MCEF it tells you what to install.
 
 Every app has a letter on its dock icon that is also its keyboard shortcut: **V**ehicle, **R**adar, **I**ntercept,
-**S**torms, **T**ornado Dodge, **W**eb (1-9 and Tab work too).
+**S**torms, **C**hopper Cam, **P**robes, **T**ornado Dodge, **W**eb (1-9 and Tab work too).
+
+**Simple Voice Chat** (optional): near a tornado, the voices you hear crunch, crackle and flutter like a phone held
+into the wind, more the louder the roar around you.
 
 While driving, the dashboard (top left) shows speed, armor, anchors, the wind where you are, and the nearest tornado:
 its EF rating, wind speed, distance and direction, and which way it's moving.

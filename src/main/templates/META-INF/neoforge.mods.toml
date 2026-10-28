@@ -38,3 +38,11 @@ type="optional"
 versionRange="[2.1,)"
 ordering="NONE"
 side="CLIENT"
+
+# Voices crackle and break up in tornado wind when Simple Voice Chat is installed.
+[[dependencies.${mod_id}]]
+modId="voicechat"
+type="optional"
+versionRange="[2.5,)"
+ordering="NONE"
+side="BOTH"

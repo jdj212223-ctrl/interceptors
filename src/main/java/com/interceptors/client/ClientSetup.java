@@ -28,6 +28,8 @@ public final class ClientSetup {
     public static void setup(FMLClientSetupEvent e) {
         Storms.clientHandler = () -> GameBusClientEvents.weatherHandler;
         Device.opener = device -> Minecraft.getInstance().setScreen(new DeviceScreen(device));
+        com.interceptors.vehicle.FlightControls.ascend = () -> Minecraft.getInstance().options.keyJump.isDown();
+        com.interceptors.vehicle.FlightControls.descend = Keys.DESCEND::isDown;
     }
 
     @SubscribeEvent
@@ -43,6 +45,8 @@ public final class ClientSetup {
         e.register(Keys.LIGHTS);
         e.register(Keys.BROADCAST);
         e.register(Keys.LEXAN);
+        e.register(Keys.PROBES);
+        e.register(Keys.DESCEND);
     }
 
     @SubscribeEvent

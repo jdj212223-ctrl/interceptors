@@ -19,6 +19,8 @@ public final class Apps {
         apps.add(new RadarApp());
         apps.add(new InterceptApp());
         apps.add(new StormListApp());
+        apps.add(new ChopperCamApp());
+        apps.add(new ProbeApp());
         if (device != Device.CAR_DISPLAY || v != null && v.spec() == VehicleSpec.GAMING_VAN) apps.add(new GameApp());
         if (device != Device.CAR_DISPLAY) apps.add(new WebApp());
         return apps;
