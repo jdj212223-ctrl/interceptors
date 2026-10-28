@@ -59,6 +59,8 @@ public class InterceptorVehicle extends Entity {
     public static final float GRIME_WARN = 60, GRIME_JAM = 100;
     /** A satellite dish on the roof: the screens inside get online apps. */
     private static final EntityDataAccessor<Boolean> DISH = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.BOOLEAN);
+    /** Who sits where: "s0".."s4" hold the UUID of the rider in that seat. Seat 0 is the driver's. */
+    private static final EntityDataAccessor<CompoundTag> SEATS = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.COMPOUND_TAG);
     /** Soft ground fills the hydraulics: full speed through mud jams them in about two minutes, rain doubles it. */
     private static final float GRIME_PER_TICK = 0.04f, GRIME_PER_SOFT_DEPLOY = 8, WASH_PER_TICK = 1.5f;
 
@@ -120,6 +122,55 @@ public class InterceptorVehicle extends Entity {
         builder.define(LIGHTS, true);
         builder.define(GRIME, 0f);
         builder.define(DISH, false);
+        builder.define(SEATS, new CompoundTag());
+    }
+
+    // ------------------------------------------------------------------ fixed seats
+
+    /** The seat this rider sits in, which never changes while they ride; -1 if they aren't in one. */
+    public int seatOf(Entity rider) {
+        CompoundTag seats = entityData.get(SEATS);
+        for (int i = 0; i < spec.seats().size(); i++) {
+            if (seats.hasUUID("s" + i) && seats.getUUID("s" + i).equals(rider.getUUID())) return i;
+        }
+        return -1;
+    }
+
+    /** Whoever sits in seat {@code seat}, or null if it's empty. */
+    @Nullable
+    public Entity riderIn(int seat) {
+        CompoundTag seats = entityData.get(SEATS);
+        if (!seats.hasUUID("s" + seat)) return null;
+        java.util.UUID id = seats.getUUID("s" + seat);
+        for (Entity e : getPassengers()) if (e.getUUID().equals(id)) return e;
+        return null;
+    }
+
+    /** Getting in takes the first free seat, the driver's first. Nobody else moves. */
+    @Override
+    protected void addPassenger(Entity passenger) {
+        super.addPassenger(passenger);
+        if (level().isClientSide || seatOf(passenger) >= 0) return;
+        CompoundTag seats = entityData.get(SEATS).copy();
+        for (int i = 0; i < spec.seats().size(); i++) {
+            if (!seats.hasUUID("s" + i) || riderIn(i) == null) {
+                seats.putUUID("s" + i, passenger.getUUID());
+                break;
+            }
+        }
+        entityData.set(SEATS, seats);
+    }
+
+    /** Getting out just empties that seat: an empty driver's seat means nobody is driving. */
+    @Override
+    protected void removePassenger(Entity passenger) {
+        super.removePassenger(passenger);
+        if (level().isClientSide) return;
+        int seat = seatOf(passenger);
+        if (seat < 0) return;
+        CompoundTag seats = entityData.get(SEATS).copy();
+        seats.remove("s" + seat);
+        entityData.set(SEATS, seats);
     }
 
     /** Online apps work inside: a roof dish is installed, or it's the Doppler on Wheels with its radar. */
@@ -281,6 +332,7 @@ public class InterceptorVehicle extends Entity {
         entityData.set(LIGHTS, !tag.contains("Lights") || tag.getBoolean("Lights"));
         entityData.set(GRIME, tag.getFloat("Grime"));
         entityData.set(DISH, tag.getBoolean("Dish"));
+        entityData.set(SEATS, tag.getCompound("Seats"));
         entityData.set(DEPLOY, tag.getInt("Deploy"));
     }
 
@@ -296,6 +348,7 @@ public class InterceptorVehicle extends Entity {
         tag.putBoolean("Lights", lightsOn());
         tag.putFloat("Grime", getGrime());
         tag.putBoolean("Dish", entityData.get(DISH));
+        tag.put("Seats", entityData.get(SEATS).copy());
         tag.putInt("Deploy", getDeploy());
     }
 
@@ -512,12 +565,14 @@ public class InterceptorVehicle extends Entity {
     @Nullable
     @Override
     public LivingEntity getControllingPassenger() {
-        return getFirstPassenger() instanceof Player p ? p : null;
+        return riderIn(0) instanceof Player p ? p : null;
     }
 
     @Override
     protected Vec3 getPassengerAttachmentPoint(Entity passenger, EntityDimensions dimensions, float scale) {
-        int seat = Math.max(0, getPassengers().indexOf(passenger));
+        int seat = seatOf(passenger);
+        // Until the seat list reaches this computer, fall back to the boarding order.
+        if (seat < 0) seat = Math.max(0, getPassengers().indexOf(passenger));
         return spec.seats().get(Math.min(seat, spec.seats().size() - 1)).yRot(-getYRot() * Mth.DEG_TO_RAD);
     }
 

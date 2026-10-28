@@ -428,6 +428,23 @@ public class InterceptorsGameTests {
         helper.succeed();
     }
 
+    /** When the driver gets out, nobody shuffles seats: the driver's seat stays empty until someone takes it. */
+    @GameTest(template = "pad")
+    public static void ridersKeepTheirSeats(GameTestHelper helper) {
+        InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
+        Player driver = player(helper), front = player(helper), back = player(helper), late = player(helper);
+        for (Player p : new Player[]{driver, front, back}) helper.assertTrue(p.startRiding(dom, true), "couldn't get in");
+        helper.assertTrue(dom.seatOf(driver) == 0 && dom.seatOf(front) == 1 && dom.seatOf(back) == 2, "boarding seats wrong");
+        driver.stopRiding();
+        boolean kept = dom.seatOf(front) == 1 && dom.seatOf(back) == 2 && dom.getControllingPassenger() == null;
+        late.startRiding(dom, true);
+        boolean newDriver = dom.seatOf(late) == 0 && dom.getControllingPassenger() == late;
+        for (Player p : new Player[]{front, back, late}) p.stopRiding();
+        helper.assertTrue(kept, "riders moved seats, or someone kept driving, after the driver got out");
+        helper.assertTrue(newDriver, "the next rider in didn't take the empty driver's seat");
+        helper.succeed();
+    }
+
     @GameTest(template = "pad")
     public static void repairKitFullyFixesTheWorstPart(GameTestHelper helper) {
         InterceptorVehicle dom = park(helper, VehicleSpec.DOMINATOR_3);
