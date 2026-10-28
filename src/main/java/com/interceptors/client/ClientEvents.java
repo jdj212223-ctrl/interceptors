@@ -23,6 +23,22 @@ public final class ClientEvents {
         return Math.min(1, rebootHold / (float) REBOOT_HOLD_TICKS);
     }
 
+    /** Clean stream mode: with the stream overlay on, the game's own HUD bits that would clutter the capture hide. */
+    @SubscribeEvent
+    public static void cleanHud(net.neoforged.neoforge.client.event.RenderGuiLayerEvent.Pre e) {
+        if (!BroadcastHud.enabled || !com.interceptors.config.ClientConfig.get(com.interceptors.config.ClientConfig.CLEAN_HUD)) return;
+        var id = e.getName();
+        if (CLEAN.contains(id)) e.setCanceled(true);
+    }
+
+    private static final java.util.Set<net.minecraft.resources.ResourceLocation> CLEAN = java.util.Set.of(
+            net.neoforged.neoforge.client.gui.VanillaGuiLayers.HOTBAR, net.neoforged.neoforge.client.gui.VanillaGuiLayers.PLAYER_HEALTH,
+            net.neoforged.neoforge.client.gui.VanillaGuiLayers.ARMOR_LEVEL, net.neoforged.neoforge.client.gui.VanillaGuiLayers.FOOD_LEVEL,
+            net.neoforged.neoforge.client.gui.VanillaGuiLayers.AIR_LEVEL, net.neoforged.neoforge.client.gui.VanillaGuiLayers.EXPERIENCE_BAR,
+            net.neoforged.neoforge.client.gui.VanillaGuiLayers.EXPERIENCE_LEVEL, net.neoforged.neoforge.client.gui.VanillaGuiLayers.SELECTED_ITEM_NAME,
+            net.neoforged.neoforge.client.gui.VanillaGuiLayers.CROSSHAIR, net.neoforged.neoforge.client.gui.VanillaGuiLayers.VEHICLE_HEALTH,
+            net.neoforged.neoforge.client.gui.VanillaGuiLayers.JUMP_METER);
+
     /** Hail closes the view right in: thick fog that grows with the hail. */
     @SubscribeEvent
     public static void fog(net.neoforged.neoforge.client.event.ViewportEvent.RenderFog e) {
@@ -51,6 +67,7 @@ public final class ClientEvents {
         while (Keys.LIGHTS.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.LIGHTS));
         while (Keys.BROADCAST.consumeClick()) BroadcastHud.enabled = !BroadcastHud.enabled;
         StormAmbience.tick(mc);
+        ObsLink.tick();
         while (Keys.DISPLAY.consumeClick()) {
             if (inVehicle && mc.player.getVehicle() instanceof InterceptorVehicle v) v.seatScreen(mc.player).open();
         }

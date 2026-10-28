@@ -28,6 +28,7 @@ public class Interceptors {
         ModSounds.SOUNDS.register(modBus);
         ModCreativeTabs.TABS.register(modBus);
         container.registerConfig(ModConfig.Type.SERVER, InterceptorsConfig.SPEC);
+        container.registerConfig(ModConfig.Type.CLIENT, com.interceptors.config.ClientConfig.SPEC);
     }
 
     public static ResourceLocation id(String path) {

@@ -33,6 +33,20 @@ public final class ClientSetup {
     }
 
     @SubscribeEvent
+    public static void layers(EntityRenderersEvent.RegisterLayerDefinitions e) {
+        e.registerLayerDefinition(com.interceptors.client.render.CutLayer.LAYER, com.interceptors.client.render.CutLayer::layer);
+    }
+
+    @SubscribeEvent
+    public static void addLayers(EntityRenderersEvent.AddLayers e) {
+        for (net.minecraft.client.resources.PlayerSkin.Model skin : e.getSkins()) {
+            if (e.getSkin(skin) instanceof net.minecraft.client.renderer.entity.player.PlayerRenderer renderer) {
+                renderer.addLayer(new com.interceptors.client.render.CutLayer(renderer, e.getEntityModels()));
+            }
+        }
+    }
+
+    @SubscribeEvent
     public static void renderers(EntityRenderersEvent.RegisterRenderers e) {
         ModEntities.VEHICLES.values().forEach(type -> e.registerEntityRenderer(type.get(), VehicleRenderer::new));
     }

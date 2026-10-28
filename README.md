@@ -92,8 +92,38 @@ Dominator 1 has a Lexan shield that rolls up over the windows, like the real one
 Up, smoky panels cover the glass, so the view is darker but the windows are safe. Down, if a tornado of EF2
 strength passes over the vehicle (111 mph at the truck, or an EF2+ tornado's centre right on top of it), the
 windows blow in: glass everywhere, the Windows part fails, and everyone inside is cut by flying glass (front seats
-about 2.5 hearts, back seats 1), with blocky red bits in front of them and a red vignette on their screens. A flashing
+about 2.5 hearts, back seats 1), with blocky red bits in front of them and a red vignette on their screens. The cuts
+stay on their face (seen in third person and by other players) for two minutes, or until they're healed. A flashing
 **RAISE LEXAN!** warning shows when a tornado is close or the wind is strong with the shield down.
+
+## Streaming with OBS
+
+Interceptors never streams by itself and never asks for a stream key. OBS Studio does the streaming; the mod
+makes the game look like a chase stream and, if you want, talks to OBS so the two stay in sync.
+
+1. In OBS, add a **Game Capture** or **Window Capture** source for the Minecraft window (on a Mac: macOS Screen
+   Capture, then pick the Minecraft window). The Modrinth launcher's Minecraft window works like any other.
+2. In game, press **B** for the livestream overlay. **Clean stream mode** (on by default) hides the hotbar,
+   health, hunger, XP and crosshair while the overlay is up, so the capture is clean.
+3. Optional, the OBS link (off by default). In OBS: **Tools > WebSocket Server Settings**, tick **Enable
+   WebSocket server**, note the port (4455) and click **Show Connect Info** for the password. Then open
+   `config/interceptors-client.toml` in the Modrinth instance folder and set:
+
+   ```toml
+   [obs]
+   enabled = true
+   port = 4455
+   password = "the OBS WebSocket password"   # not your stream key
+   chopperScene = "Chopper Cam"               # optional: an OBS scene to switch to in the Chopper Cam app
+   mainScene = "Chase"                        # optional: the scene to switch back to
+   ```
+
+   With the link on, the overlay's tag shows **LIVE** only while OBS is really streaming, **REC** while it's
+   recording and **OFFLINE** otherwise, and opening the Chopper Cam app switches OBS to your Chopper Cam scene.
+   The link only ever connects to OBS on your own computer.
+
+Streamlabs Desktop isn't supported by the link (it uses its own remote-control system, not OBS's WebSocket), but
+capturing the game with it works the same as step 1 and 2.
 
 ## Controls
 
@@ -118,7 +148,10 @@ them to VR controller buttons.
 
 ## Screens
 
-The computer and laptop blocks, the MacBook and iPad items, and the car display all run StormOS:
+The computer and laptop blocks, the MacBook, iPad and Rugged Laptop items, the passenger laptop and the car
+display all run StormOS. It opens on a desktop with a stormy wallpaper and big app icons; a taskbar along the
+bottom has the Home button, the open app, satellite signal, battery, and the date and clock. Apps fade in as they
+open; **H** goes back to the desktop.
 
 - **Radar**: live rain and hail from PMWeather, storms, and tornadoes with their 2-minute forecast track. Scroll to zoom.
 - **Intercept**: a big arrow to the nearest tornado, its distance, EF rating, how fast it's coming at you and when it

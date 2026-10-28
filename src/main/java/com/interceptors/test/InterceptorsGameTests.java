@@ -578,6 +578,15 @@ public class InterceptorsGameTests {
         helper.succeed();
     }
 
+    /** The OBS WebSocket login answer matches the example in the obs-websocket protocol docs. */
+    @GameTest(template = "pad")
+    public static void obsLoginMatchesTheProtocol(GameTestHelper helper) {
+        String answer = com.interceptors.compat.ObsAuth.answer("supersecretpassword", "lM1GncleQOaCu9lT1yeUZhFYnqhsLLP1G5lAGo3ixaI=",
+                "+IxH4CnCiqpX1rM9scsNynZzbOe4KhDeYcTNS3PDaeY=");
+        helper.assertTrue(answer.equals("1Ct943GAT+6YQUUX47Ia/ncufilbe6+oD6lY+5kaCu4="), "OBS login answer wrong: " + answer);
+        helper.succeed();
+    }
+
     @GameTest(template = "pad")
     public static void readsRealPMWeather(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();

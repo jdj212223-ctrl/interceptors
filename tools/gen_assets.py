@@ -246,8 +246,24 @@ RSSSSSSSSSSSSSB.
 }
 
 
+def cut_texture():
+    """Flying-glass cuts on a player head, in skin layout: red gashes and drips on the face, a nick on each side."""
+    img = np.zeros((64, 64, 4), np.uint8)
+    dark, red, bright = [110, 6, 6, 235], [160, 12, 12, 235], [200, 26, 22, 220]
+    face = [(9, 9, red), (10, 10, red), (11, 10, dark), (12, 11, red), (13, 12, red), (14, 12, dark),  # cheek gash
+            (12, 12, bright), (12, 13, red), (13, 14, dark),  # drip
+            (10, 13, red), (10, 14, dark),  # chin cut
+            (14, 9, red), (15, 9, dark)]  # brow nick
+    for x, y, c in face:
+        img[y, x] = c
+    for x, y, c in [(2, 11, red), (3, 12, dark), (19, 10, red), (20, 11, dark), (11, 3, red)]:  # sides and top
+        img[y, x] = c
+    return img
+
+
 def textures():
     write_png(np.full((16, 16, 4), 255, np.uint8), ASSETS, "textures", "entity", "white.png")
+    write_png(cut_texture(), ASSETS, "textures", "entity", "cut.png")
     for name, (art, paint) in ICONS.items():
         write_png(ascii_icon(art, {**BASE, **paint}), ASSETS, "textures", "item", name + ".png")
         write_json({"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/{name}"}},

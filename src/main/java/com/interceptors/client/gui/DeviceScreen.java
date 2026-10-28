@@ -2,6 +2,7 @@ package com.interceptors.client.gui;
 
 import com.interceptors.client.gui.apps.App;
 import com.interceptors.client.Keys;
+import com.interceptors.client.ObsLink;
 import com.interceptors.item.DeviceItem;
 import com.interceptors.network.DeviceUsePayload;
 import net.neoforged.neoforge.network.PacketDistributor;
@@ -22,15 +23,24 @@ import java.util.Map;
 
 /**
  * StormOS: the same storm-chasing apps on every device, drawn inside that device's frame (monitor, laptop,
- * MacBook, iPad or car dashboard). It never pauses the game, so storms keep moving while you look.
+ * MacBook, iPad or car dashboard). It opens on a desktop with a stormy wallpaper and app icons, with a taskbar
+ * (home button, open app, signal, battery, date and clock) along the bottom; apps fade in as they open. It never
+ * pauses the game, so storms keep moving while you look.
  */
 public class DeviceScreen extends Screen {
     private static final Map<Device, String> LAST_APP = new EnumMap<>(Device.class);
-    private static final int BAR = 11, DOCK = 24;
+    /** Height of the taskbar along the bottom of the display. */
+    private static final int TASKBAR = 16;
+    /** "No app open": the desktop with its icons. */
+    private static final int HOME = -1;
+    /** How long (ticks) a newly opened app takes to fade in. */
+    private static final float FADE_TICKS = 6;
 
     public final Device device;
     private final List<App> apps;
-    private int current;
+    private int current = HOME;
+    /** Game time (with partial ticks) the current app was opened, for the fade-in. */
+    private float openedAt = -100;
     private int useTicks;
     /** The display area inside the bezel. */
     private int sx, sy, sw, sh;
@@ -70,7 +80,7 @@ public class DeviceScreen extends Screen {
     }
 
     public int appY() {
-        return sy + BAR;
+        return sy;
     }
 
     public int appW() {
@@ -78,7 +88,7 @@ public class DeviceScreen extends Screen {
     }
 
     public int appH() {
-        return sh - BAR - DOCK;
+        return sh - TASKBAR;
     }
 
     public boolean inApp(double mx, double my) {
@@ -113,23 +123,22 @@ public class DeviceScreen extends Screen {
 
     // ------------------------------------------------------------------ drawing
 
+    @Nullable
+    private App app() {
+        return current == HOME ? null : apps.get(current);
+    }
+
     @Override
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         super.render(g, mouseX, mouseY, partialTick);
         drawFrame(g);
         g.fill(sx, sy, sx + sw, sy + sh, 0xFF0A0D12);
 
-        App app = apps.get(current);
+        App app = app();
         InterceptorVehicle v = vehicle();
         if (device.portable() && battery() <= 0) {
             drawMessage(g, Component.translatable("device.interceptors.battery_empty"), 0xFF6060);
-            drawStatusBar(g);
-            return;
-        }
-        if (app.needsInternet() && !online()) {
-            drawMessage(g, Component.translatable("device.interceptors.no_signal"), 0xFFC040);
-            drawStatusBar(g);
-            drawDock(g, mouseX, mouseY);
+            drawTaskbar(g, mouseX, mouseY);
             return;
         }
         if (device == Device.CAR_DISPLAY && v != null && !v.screensWork()) {
@@ -137,11 +146,19 @@ public class DeviceScreen extends Screen {
             return;
         }
         g.enableScissor(appX(), appY(), appX() + appW(), appY() + appH());
-        app.render(g, this, appX(), appY(), appW(), appH(), mouseX, mouseY, partialTick);
+        if (app == null) {
+            drawDesktop(g, mouseX, mouseY);
+        } else if (app.needsInternet() && !online()) {
+            drawWallpaper(g);
+            drawMessage(g, Component.translatable("device.interceptors.no_signal"), 0xFFC040);
+        } else {
+            app.render(g, this, appX(), appY(), appW(), appH(), mouseX, mouseY, partialTick);
+        }
+        // Each app fades in as it opens, like switching windows.
+        float age = minecraft.level.getGameTime() + partialTick - openedAt;
+        if (age < FADE_TICKS) g.fill(appX(), appY(), appX() + appW(), appY() + appH(), (int) (230 * (1 - age / FADE_TICKS)) << 24 | 0x0A0D12);
         g.disableScissor();
-
-        drawStatusBar(g);
-        drawDock(g, mouseX, mouseY);
+        drawTaskbar(g, mouseX, mouseY);
     }
 
     private void drawFrame(GuiGraphics g) {
@@ -253,101 +270,219 @@ public class DeviceScreen extends Screen {
         }
     }
 
-    private void drawStatusBar(GuiGraphics g) {
-        g.fill(sx, sy, sx + sw, sy + BAR, 0xE0101418);
-        g.drawString(font, title, sx + 4, sy + 2, 0xC0C8D0, false);
+    // ------------------------------------------------------------------ desktop
+
+    /** A stormy sky: deep blue to teal, a supercell's anvil, a funnel touching down, and the StormOS watermark. */
+    private void drawWallpaper(GuiGraphics g) {
+        int x = appX(), y = appY(), w = appW(), h = appH();
+        for (int i = 0; i < h; i += 2) g.fill(x, y + i, x + w, y + i + 2, Draw.lerpColor(0x0C1630, 0x2A5A60, i / (float) h));
+        float cx = x + w * 0.62f, base = y + h * 0.42f;
+        for (int k = 0; k < 5; k++) Draw.disc(g, cx - w * 0.25f + k * w * 0.12f, base - (k % 2) * 6, w * 0.11f, 0x60101820);
+        g.fill(x + (int) (w * 0.3f), (int) base, x + (int) (w * 0.95f), (int) base + 6, 0x70101820);
+        for (int sIdx = 0; sIdx < 14; sIdx++) {
+            float t = sIdx / 14f;
+            int half = (int) (w * 0.05f * (1 - t) + 2);
+            int fy = (int) (base + 6 + t * (h * 0.48f));
+            g.fill((int) cx - half + (int) (Math.sin(t * 3) * 6), fy, (int) cx + half + (int) (Math.sin(t * 3) * 6), fy + (int) (h * 0.035f) + 1, 0x80202830);
+        }
+        g.fill(x, y + h - 8, x + w, y + h, 0x60203018);
+        String mark = "StormOS";
+        g.drawString(font, mark, x + w - font.width(mark) - 6, y + h - 18, 0x60FFFFFF, false);
+    }
+
+    private static final int ICON = 26, CELL_W = 58, CELL_H = 46;
+
+    /** The desktop: wallpaper and a grid of app icons with their names. Click one, or press its letter. */
+    private void drawDesktop(GuiGraphics g, int mouseX, int mouseY) {
+        drawWallpaper(g);
+        int cols = Math.max(1, (appW() - 8) / CELL_W);
+        for (int i = 0; i < apps.size(); i++) {
+            int[] r = iconRect(i, cols);
+            boolean hover = mouseX >= r[0] - 4 && mouseX < r[0] + ICON + 4 && mouseY >= r[1] - 2 && mouseY < r[1] + ICON + 12;
+            if (hover) g.fill(r[0] - 14, r[1] - 3, r[0] + ICON + 14, r[1] + ICON + 13, 0x40FFFFFF);
+            drawIcon(g, apps.get(i), r[0], r[1], ICON);
+            String name = Component.translatable("app.interceptors." + apps.get(i).id()).getString();
+            if (font.width(name) > CELL_W - 4) name = font.plainSubstrByWidth(name, CELL_W - 10) + ".";
+            g.drawString(font, name, r[0] + ICON / 2 - font.width(name) / 2, r[1] + ICON + 3, 0xFFFFFF, true);
+        }
+    }
+
+    private int[] iconRect(int i, int cols) {
+        int gridW = cols * CELL_W, left = appX() + (appW() - gridW) / 2;
+        return new int[]{left + (i % cols) * CELL_W + (CELL_W - ICON) / 2, appY() + 10 + (i / cols) * CELL_H};
+    }
+
+    /** A rounded app tile in the app's colour with a little white picture of what it does. */
+    private void drawIcon(GuiGraphics g, App a, int x, int y, int s) {
+        int c = 0xFF000000 | a.color(), dark = Draw.lerpColor(a.color(), 0x000000, 0.35f);
+        g.fill(x + 2, y, x + s - 2, y + s, c);
+        g.fill(x, y + 2, x + s, y + s - 2, c);
+        g.fill(x + 2, y + s / 2, x + s - 2, y + s, dark);
+        g.fill(x, y + s / 2, x + s, y + s - 2, dark);
+        float cx = x + s / 2f, cy = y + s / 2f, r = s * 0.32f;
+        int w = 0xFFFFFFFF;
+        switch (a.id()) {
+            case "vehicle" -> {
+                g.fill((int) (cx - r), (int) (cy - 2), (int) (cx + r), (int) (cy + 4), w);
+                g.fill((int) (cx - r * 0.5f), (int) (cy - 6), (int) (cx + r * 0.6f), (int) (cy - 1), w);
+                Draw.disc(g, cx - r * 0.6f, cy + 5, 2.5f, 0xFF202020);
+                Draw.disc(g, cx + r * 0.6f, cy + 5, 2.5f, 0xFF202020);
+            }
+            case "radar" -> {
+                Draw.ring(g, cx, cy, r, w);
+                Draw.ring(g, cx, cy, r * 0.5f, 0xA0FFFFFF);
+                Draw.line(g, cx, cy, cx + r * 0.7f, cy - r * 0.7f, 1, w);
+                Draw.dot(g, cx - r * 0.4f, cy + r * 0.2f, 3, 0xFFFF4040);
+            }
+            case "intercept" -> Draw.arrow(g, cx, cy + 1, r, 35, 2, w);
+            case "storms" -> {
+                for (int k = 0; k < 3; k++) {
+                    Draw.dot(g, cx - r, cy - 5 + k * 5, 3, k == 0 ? 0xFFFF4040 : w);
+                    g.fill((int) (cx - r + 4), (int) (cy - 6 + k * 5), (int) (cx + r), (int) (cy - 4 + k * 5), w);
+                }
+            }
+            case "chopper" -> {
+                Draw.disc(g, cx - 2, cy + 1, r * 0.55f, w);
+                g.fill((int) cx, (int) cy, (int) (cx + r + 2), (int) cy + 2, w);
+                g.fill((int) (cx - r - 2), (int) (cy - r * 0.6f - 2), (int) (cx + r + 2), (int) (cy - r * 0.6f - 1), w);
+                g.fill((int) cx - 3, (int) (cy + r * 0.6f + 1), (int) cx + 3, (int) (cy + r * 0.6f + 2), w);
+            }
+            case "probes" -> {
+                g.fill((int) cx - 2, (int) (cy - r + 2), (int) cx + 3, (int) (cy + r - 3), w);
+                Draw.line(g, cx - 2, cy - r + 2, cx, cy - r - 2, 1, w);
+                Draw.line(g, cx + 2, cy - r + 2, cx, cy - r - 2, 1, w);
+                g.fill((int) cx - 1, (int) (cy + r - 3), (int) cx + 2, (int) (cy + r + 1), 0xFFFFC040);
+            }
+            case "game" -> {
+                for (int k = 0; k < 5; k++) {
+                    int half = (int) (r * (1 - k * 0.17f));
+                    g.fill((int) cx - half + (k % 2), (int) (cy - r + k * 3.5f), (int) cx + half + (k % 2), (int) (cy - r + k * 3.5f + 2.5f), w);
+                }
+            }
+            case "web" -> {
+                Draw.ring(g, cx, cy, r, w);
+                Draw.line(g, cx - r, cy, cx + r, cy, 1, w);
+                Draw.line(g, cx, cy - r, cx, cy + r, 1, w);
+                Draw.ring(g, cx, cy, r * 0.45f, 0xB0FFFFFF);
+            }
+            default -> {
+                String letter = String.valueOf(shortcut(a));
+                g.drawString(font, letter, (int) cx - font.width(letter) / 2, (int) cy - 4, w, true);
+            }
+        }
+    }
+
+    /** Along the bottom: the StormOS home button, the open app, then signal, battery, date and clock. */
+    private void drawTaskbar(GuiGraphics g, int mouseX, int mouseY) {
+        int y = sy + sh - TASKBAR;
+        g.fill(sx, y, sx + sw, sy + sh, 0xF0101418);
+        g.fill(sx, y, sx + sw, y + 1, 0x4030E0FF);
+        boolean homeHover = mouseX >= sx && mouseX < sx + 52 && mouseY >= y;
+        g.fill(sx + 2, y + 2, sx + 50, sy + sh - 2, homeHover ? 0xFF2A6AC0 : 0xFF1E4A8A);
+        // a little house for "home"
+        g.fill(sx + 6, y + 8, sx + 13, y + 13, 0xFFFFFFFF);
+        Draw.line(g, sx + 5, y + 8, sx + 9.5f, y + 4, 1, 0xFFFFFFFF);
+        Draw.line(g, sx + 14, y + 8, sx + 9.5f, y + 4, 1, 0xFFFFFFFF);
+        g.drawString(font, "Home", sx + 17, y + 4, 0xFFFFFF, false);
+        App a = app();
+        Component open = a == null ? title : Component.translatable("app.interceptors." + a.id());
+        g.drawString(font, open, sx + 56, y + 4, 0xC0C8D0, false);
+
+        int rx = sx + sw - 4;
         long day = minecraft.level.getDayTime() % 24000;
         int hours = (int) ((day / 1000 + 6) % 24), minutes = (int) (day % 1000 * 60 / 1000);
         String date = com.interceptors.compat.Storms.date(minecraft.level);
         String clock = (date == null ? "" : date + "  ") + String.format("%d:%02d", hours, minutes);
-        g.drawString(font, clock, sx + sw / 2 - font.width(clock) / 2, sy + 2, 0xFFFFFF, false);
+        rx -= font.width(clock);
+        g.drawString(font, clock, rx, y + 4, 0xFFFFFF, false);
         if (device.portable()) {
-            int bx = sx + sw - 20, charge = battery();
+            int charge = battery();
+            rx -= 22;
+            g.fill(rx, y + 5, rx + 14, y + 11, 0xFF9AA0A6);
+            g.fill(rx + 1, y + 6, rx + 1 + Math.round(12 * charge / 100f), y + 10, charge > 20 ? 0xFF40D060 : 0xFFE03030);
+            g.fill(rx + 14, y + 7, rx + 15, y + 9, 0xFF9AA0A6);
             String pct = charge + "%";
-            g.drawString(font, pct, bx - font.width(pct) - 3, sy + 2, 0xC0C8D0, false);
-            g.fill(bx, sy + 3, bx + 14, sy + 8, 0xFF9AA0A6);
-            g.fill(bx + 1, sy + 4, bx + 1 + Math.round(12 * charge / 100f), sy + 7, charge > 20 ? 0xFF40D060 : 0xFFE03030);
-            g.fill(bx + 14, sy + 4, bx + 15, sy + 7, 0xFF9AA0A6);
+            rx -= font.width(pct) + 3;
+            g.drawString(font, pct, rx, y + 4, 0xC0C8D0, false);
         }
         if (vehicle() != null) {
             Component net = Component.translatable(online() ? "device.interceptors.sat_ok" : "device.interceptors.sat_none");
-            g.drawString(font, net, sx + sw - 100 - font.width(net), sy + 2, online() ? 0x80D080 : 0xFFC040, false);
+            rx -= font.width(net) + 8;
+            g.drawString(font, net, rx, y + 4, online() ? 0x80D080 : 0xFFC040, false);
         }
-    }
-
-    private void drawDock(GuiGraphics g, int mouseX, int mouseY) {
-        int dy = sy + sh - DOCK;
-        g.fill(sx, dy, sx + sw, sy + sh, 0xE0141820);
-        int size = 18, gap = 6, total = apps.size() * size + (apps.size() - 1) * gap;
-        int x = sx + (sw - total) / 2;
-        Component hovered = null;
-        for (int i = 0; i < apps.size(); i++) {
-            App a = apps.get(i);
-            int ix = x + i * (size + gap), iy = dy + 3;
-            if (i == current) g.fill(ix - 2, iy - 2, ix + size + 2, iy + size + 2, 0xFF30E0FF);
-            g.fill(ix, iy, ix + size, iy + size, 0xFF000000 | a.color());
-            Component name = Component.translatable("app.interceptors." + a.id());
-            String letter = String.valueOf(shortcut(a));
-            g.drawString(font, letter, ix + size / 2 - font.width(letter) / 2 + 1, iy + 5, 0xFFFFFF, true);
-            if (mouseX >= ix && mouseX < ix + size && mouseY >= iy && mouseY < iy + size) hovered = name;
-        }
-        if (hovered != null) g.renderTooltip(font, hovered, mouseX, mouseY);
     }
 
     // ------------------------------------------------------------------ input
 
-    /** The letter shown on an app's dock icon, which is also its keyboard shortcut. */
+    /** The letter shown on an app's icon, which is also its keyboard shortcut. */
     private static char shortcut(App app) {
         return Component.translatable("app.interceptors." + app.id()).getString().charAt(0);
     }
 
     private void switchTo(int index) {
-        if (index == current || index < 0 || index >= apps.size()) return;
-        apps.get(current).close();
+        if (index == current || index < HOME || index >= apps.size()) return;
+        App old = app();
+        if (old != null) old.close();
         current = index;
-        LAST_APP.put(device, apps.get(current).id());
+        openedAt = minecraft.level.getGameTime();
+        LAST_APP.put(device, current == HOME ? "" : apps.get(current).id());
+        ObsLink.appOpened(current == HOME ? null : apps.get(current).id());
     }
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        int dy = sy + sh - DOCK, size = 18, gap = 6, total = apps.size() * size + (apps.size() - 1) * gap;
-        int x = sx + (sw - total) / 2;
-        if (mouseY >= dy && mouseY < sy + sh) {
+        int y = sy + sh - TASKBAR;
+        if (mouseY >= y && mouseY < sy + sh && mouseX >= sx && mouseX < sx + 52) {
+            switchTo(HOME);
+            return true;
+        }
+        if (current == HOME && inApp(mouseX, mouseY)) {
+            int cols = Math.max(1, (appW() - 8) / CELL_W);
             for (int i = 0; i < apps.size(); i++) {
-                int ix = x + i * (size + gap);
-                if (mouseX >= ix && mouseX < ix + size) {
+                int[] r = iconRect(i, cols);
+                if (mouseX >= r[0] - 14 && mouseX < r[0] + ICON + 14 && mouseY >= r[1] - 3 && mouseY < r[1] + ICON + 13) {
                     switchTo(i);
                     return true;
                 }
             }
         }
-        if (inApp(mouseX, mouseY) && apps.get(current).mouseClicked(this, mouseX, mouseY, button)) return true;
+        App a = app();
+        if (a != null && inApp(mouseX, mouseY) && a.mouseClicked(this, mouseX, mouseY, button)) return true;
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
     @Override
     public void mouseMoved(double mouseX, double mouseY) {
-        apps.get(current).mouseMoved(this, mouseX, mouseY);
+        App a = app();
+        if (a != null) a.mouseMoved(this, mouseX, mouseY);
     }
 
     @Override
     public boolean mouseReleased(double mouseX, double mouseY, int button) {
-        return apps.get(current).mouseReleased(this, mouseX, mouseY, button) || super.mouseReleased(mouseX, mouseY, button);
+        App a = app();
+        return a != null && a.mouseReleased(this, mouseX, mouseY, button) || super.mouseReleased(mouseX, mouseY, button);
     }
 
     @Override
     public boolean mouseDragged(double mouseX, double mouseY, int button, double dx, double dy) {
-        return apps.get(current).mouseDragged(this, mouseX, mouseY, button, dx, dy) || super.mouseDragged(mouseX, mouseY, button, dx, dy);
+        App a = app();
+        return a != null && a.mouseDragged(this, mouseX, mouseY, button, dx, dy) || super.mouseDragged(mouseX, mouseY, button, dx, dy);
     }
 
     @Override
     public boolean mouseScrolled(double mouseX, double mouseY, double scrollX, double scrollY) {
-        return inApp(mouseX, mouseY) && apps.get(current).mouseScrolled(this, mouseX, mouseY, scrollY);
+        App a = app();
+        return a != null && inApp(mouseX, mouseY) && a.mouseScrolled(this, mouseX, mouseY, scrollY);
     }
 
     @Override
     public boolean keyPressed(int key, int scancode, int modifiers) {
-        if (key != GLFW.GLFW_KEY_ESCAPE && apps.get(current).keyPressed(this, key, scancode, modifiers)) return true;
+        App a = app();
+        if (key != GLFW.GLFW_KEY_ESCAPE && a != null && a.keyPressed(this, key, scancode, modifiers)) return true;
+        if (key == GLFW.GLFW_KEY_H) {
+            switchTo(HOME);
+            return true;
+        }
         if (key == GLFW.GLFW_KEY_TAB) {
             switchTo((current + 1) % apps.size());
             return true;
@@ -356,7 +491,7 @@ public class DeviceScreen extends Screen {
             switchTo(key - GLFW.GLFW_KEY_1);
             return true;
         }
-        // Letter shortcuts: each app's dock letter (V)ehicle, (R)adar, (I)ntercept, (S)torms, (T)ornado Dodge, (W)eb.
+        // Letter shortcuts: each app's icon letter (V)ehicle, (R)adar, (I)ntercept, (S)torms, (C)hopper, (P)robes...
         if (key >= GLFW.GLFW_KEY_A && key <= GLFW.GLFW_KEY_Z) {
             char letter = (char) ('A' + key - GLFW.GLFW_KEY_A);
             for (int i = 0; i < apps.size(); i++) {
@@ -371,24 +506,28 @@ public class DeviceScreen extends Screen {
 
     @Override
     public boolean keyReleased(int key, int scancode, int modifiers) {
-        return apps.get(current).keyReleased(this, key, scancode, modifiers) || super.keyReleased(key, scancode, modifiers);
+        App a = app();
+        return a != null && a.keyReleased(this, key, scancode, modifiers) || super.keyReleased(key, scancode, modifiers);
     }
 
     @Override
     public boolean charTyped(char c, int modifiers) {
-        return apps.get(current).charTyped(this, c, modifiers) || super.charTyped(c, modifiers);
+        App a = app();
+        return a != null && a.charTyped(this, c, modifiers) || super.charTyped(c, modifiers);
     }
 
     @Override
     public void tick() {
         // Handhelds use battery while their screen is on: one percent every five seconds.
         if (device.portable() && ++useTicks % 100 == 0) PacketDistributor.sendToServer(new DeviceUsePayload(device.ordinal()));
-        apps.get(current).tick(this);
+        App a = app();
+        if (a != null) a.tick(this);
     }
 
     @Override
     public void removed() {
         apps.forEach(App::close);
-        LAST_APP.put(device, apps.get(current).id());
+        LAST_APP.put(device, current == HOME ? "" : apps.get(current).id());
+        ObsLink.appOpened(null);
     }
 }

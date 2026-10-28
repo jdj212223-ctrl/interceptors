@@ -99,9 +99,12 @@ public final class BroadcastHud {
             g.drawString(font, b, x + 6, 4, WHITE, false);
             x += bw + 6;
         }
-        String live = "LIVE";
+        // With the OBS link on, the tag tells the truth: LIVE while streaming, REC while recording, else OFFLINE.
+        boolean obs = com.interceptors.client.ObsLink.connected();
+        String live = !obs || com.interceptors.client.ObsLink.streaming() ? "LIVE" : com.interceptors.client.ObsLink.recording() ? "REC" : "OFFLINE";
+        int tag = live.equals("OFFLINE") ? 0xFF505050 : RED;
         int lx = w - font.width(live) - 18;
-        g.fill(lx - 4, 2, w - 4, TOP - 3, RED);
+        g.fill(lx - 4, 2, w - 4, TOP - 3, tag);
         g.drawString(font, live, lx + 6, 4, WHITE, false);
         g.fill(lx, 6, lx + 4, 10, WHITE);
     }

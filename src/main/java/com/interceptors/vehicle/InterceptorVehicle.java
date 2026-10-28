@@ -63,6 +63,8 @@ public class InterceptorVehicle extends Entity {
     private static final EntityDataAccessor<Boolean> LEXAN = SynchedEntityData.defineId(InterceptorVehicle.class, EntityDataSerializers.BOOLEAN);
     /** Wind (mph) that blows out unshielded windows: an EF2 passing over, like Dominator 1 at Aurora in 2009. */
     public static final double SHATTER_MPH = 111;
+    /** How long a flying-glass cut stays on someone's face: two minutes. */
+    public static final int CUT_TICKS = 2400;
     public static final net.minecraft.resources.ResourceKey<net.minecraft.world.damagesource.DamageType> FLYING_GLASS =
             net.minecraft.resources.ResourceKey.create(net.minecraft.core.registries.Registries.DAMAGE_TYPE, com.interceptors.Interceptors.id("flying_glass"));
     /** Weather probes left in the Dom 3's launcher, and the readings from the last launch. */
@@ -192,6 +194,9 @@ public class InterceptorVehicle extends Entity {
                 if (rider instanceof net.minecraft.server.level.ServerPlayer sp) {
                     net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new com.interceptors.network.GlassBurstPayload());
                 }
+                // The cut stays on their face for a couple of minutes, for everyone who can see them.
+                net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(rider,
+                        new com.interceptors.network.CutPayload(rider.getId(), CUT_TICKS));
             }
         }
         tellRiders("message.interceptors.windows_blown");
