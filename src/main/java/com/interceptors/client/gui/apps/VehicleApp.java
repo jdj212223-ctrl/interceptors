@@ -26,7 +26,9 @@ public class VehicleApp implements App {
     @Override
     public void render(GuiGraphics g, DeviceScreen screen, int x, int y, int w, int h, int mouseX, int mouseY, float partialTick) {
         Font font = Minecraft.getInstance().font;
-        g.fill(x, y, x + w, y + h, 0xFF0B0F14);
+        com.interceptors.client.gui.DashTheme t = screen.theme();
+        int accent = t == null ? 0xFF30E0FF : t.accent(Minecraft.getInstance().level.getGameTime());
+        g.fill(x, y, x + w, y + h, t == null ? 0xFF0B0F14 : t.background);
         InterceptorVehicle v = screen.vehicle();
         if (v == null) {
             g.drawString(font, Component.translatable("app.interceptors.vehicle.none"), x + 6, y + 6, 0x9AA0A6, false);
@@ -34,17 +36,18 @@ public class VehicleApp implements App {
         }
         int dial = Math.min(h - 14, w / 3) / 2;
         int cx = x + 8 + dial, cy = y + 6 + dial;
-        Draw.ring(g, cx, cy, dial, 0xFF3A4458);
+        Draw.ring(g, cx, cy, dial, t == null ? 0xFF3A4458 : accent & 0x80FFFFFF);
         double mph = WindPhysics.toMph(Math.abs(v.getSpeed()));
         double topMph = WindPhysics.toMph(v.spec().maxSpeed());
         // Needle sweeps 240 degrees, like a real speedometer.
-        Draw.arrow(g, cx, cy, dial * 0.8f, -120 + 240 * Math.min(1, mph / topMph), 2, 0xFF30E0FF);
+        Draw.arrow(g, cx, cy, dial * 0.8f, -120 + 240 * Math.min(1, mph / topMph), 2, accent);
         String speed = (int) Math.round(mph) + "";
         g.drawString(font, speed, cx - font.width(speed) / 2, cy + dial / 2, 0xFFFFFF, true);
         g.drawString(font, "mph", cx - font.width("mph") / 2, cy + dial / 2 + 10, 0x8090A8, false);
 
         int tx = x + 20 + dial * 2, line = y + 6;
-        g.drawString(font, Component.translatable("entity.interceptors." + v.spec().id()), tx, line, 0xFFFFFF, true);
+        String name = Component.translatable("entity.interceptors." + v.spec().id()).getString();
+        g.drawString(font, t == null ? name : t.format(name), tx, line, t == null ? 0xFFFFFF : t.text, true);
         line += 13;
         double heading = ((v.getYRot() + 180) % 360 + 360) % 360;
         g.drawString(font, Component.translatable("app.interceptors.vehicle.heading", Storms.compassName(heading), (int) heading), tx, line, 0xC0C8D0, false);

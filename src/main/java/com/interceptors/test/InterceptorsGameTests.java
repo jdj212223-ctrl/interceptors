@@ -587,6 +587,23 @@ public class InterceptorsGameTests {
         helper.succeed();
     }
 
+    /** Not every car has the same dash: each vehicle family gets its own look. */
+    @GameTest(template = "pad")
+    public static void everyVehicleHasItsOwnDash(GameTestHelper helper) {
+        java.util.Map<VehicleSpec, com.interceptors.client.gui.DashTheme> want = java.util.Map.of(
+                VehicleSpec.DOMINATOR_1, com.interceptors.client.gui.DashTheme.DOMINATOR,
+                VehicleSpec.DOMINATOR_3, com.interceptors.client.gui.DashTheme.DOMINATOR,
+                VehicleSpec.TIV_1, com.interceptors.client.gui.DashTheme.MILITARY,
+                VehicleSpec.TIV_2, com.interceptors.client.gui.DashTheme.MILITARY,
+                VehicleSpec.DOPPLER_ON_WHEELS, com.interceptors.client.gui.DashTheme.RADAR,
+                VehicleSpec.GAMING_VAN, com.interceptors.client.gui.DashTheme.GAMING,
+                VehicleSpec.RENTAL_CAR, com.interceptors.client.gui.DashTheme.STOCK,
+                VehicleSpec.STORM_CHOPPER, com.interceptors.client.gui.DashTheme.COCKPIT);
+        want.forEach((spec, theme) -> helper.assertTrue(com.interceptors.client.gui.DashTheme.of(spec) == theme,
+                spec.id() + " has the " + com.interceptors.client.gui.DashTheme.of(spec) + " dash, wanted " + theme));
+        helper.succeed();
+    }
+
     @GameTest(template = "pad")
     public static void readsRealPMWeather(GameTestHelper helper) {
         ServerLevel level = helper.getLevel();

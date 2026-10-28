@@ -24,12 +24,15 @@ public final class VehicleHud {
         boolean blink = mc.level.getGameTime() / 6 % 2 == 0;
         // Inside the video frame when the stream overlay is on.
         int x = BroadcastHud.enabled ? 10 : 6, y = BroadcastHud.enabled ? BroadcastHud.TOP + 10 : 6, w = 168, h = 74;
-        g.fill(x, y, x + w, y + h, 0xB0101418);
-        g.fill(x, y, x + w, y + 1, 0xFF30E0FF);
+        // Each vehicle's own dash colours.
+        DashTheme theme = DashTheme.of(v.spec());
+        int accent = theme.accent(mc.level.getGameTime());
+        g.fill(x, y, x + w, y + h, (theme.background & 0xFFFFFF) | 0xC0000000);
+        g.fill(x, y, x + w, y + 1, accent);
 
         g.drawString(font, Component.translatable("entity.interceptors." + v.spec().id()), x + 5, y + 4, 0xFFFFFF);
         int mph = (int) Math.round(WindPhysics.toMph(Math.abs(v.getSpeed())));
-        g.drawString(font, mph + " mph", x + w - 5 - font.width(mph + " mph"), y + 4, 0x30E0FF);
+        g.drawString(font, mph + " mph", x + w - 5 - font.width(mph + " mph"), y + 4, accent);
 
         float hp = v.healthFraction();
         g.fill(x + 5, y + 16, x + w - 5, y + 20, 0xFF303030);

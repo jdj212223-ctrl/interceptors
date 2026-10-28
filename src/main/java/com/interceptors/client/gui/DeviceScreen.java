@@ -132,7 +132,8 @@ public class DeviceScreen extends Screen {
     public void render(GuiGraphics g, int mouseX, int mouseY, float partialTick) {
         super.render(g, mouseX, mouseY, partialTick);
         drawFrame(g);
-        g.fill(sx, sy, sx + sw, sy + sh, 0xFF0A0D12);
+        DashTheme theme = theme();
+        g.fill(sx, sy, sx + sw, sy + sh, theme == null ? 0xFF0A0D12 : theme.background);
 
         App app = app();
         InterceptorVehicle v = vehicle();
@@ -211,12 +212,69 @@ public class DeviceScreen extends Screen {
                 g.fill(sx - 10, sy - 10, sx + sw + 10, sy + sh + 10, 0xFF0B0B0C);
                 g.fill(sx + sw / 2 - 1, sy - 7, sx + sw / 2 + 2, sy - 4, 0xFF303A48);
             }
-            case CAR_DISPLAY -> {
-                g.fill(sx - 30, sy - 10, sx + sw + 30, sy + sh + 16, 0xFF1D1F22);
-                g.fill(sx - 6, sy - 6, sx + sw + 6, sy + sh + 6, 0xFF050506);
+            case CAR_DISPLAY -> drawCarFrame(g, theme());
+        }
+    }
+
+    /** The car display's look in the vehicle you're in, or null away from one (or on any other device). */
+    @Nullable
+    public DashTheme theme() {
+        InterceptorVehicle v = vehicle();
+        return device == Device.CAR_DISPLAY && v != null ? DashTheme.of(v.spec()) : null;
+    }
+
+    /** Each vehicle's own dash unit around the screen. */
+    private void drawCarFrame(GuiGraphics g, @Nullable DashTheme t) {
+        int frame = t == null ? 0xFF1D1F22 : t.frame, accent = t == null ? 0xFF34373C : t.accent(minecraft.level.getGameTime());
+        g.fill(sx - 30, sy - 10, sx + sw + 30, sy + sh + 16, frame);
+        g.fill(sx - 6, sy - 6, sx + sw + 6, sy + sh + 6, 0xFF050506);
+        if (t == null) return;
+        switch (t) {
+            case DOMINATOR -> {
+                // Rugged mount: black rubber corners and a carry bar.
+                for (int[] c : new int[][]{{sx - 30, sy - 10}, {sx + sw + 18, sy - 10}, {sx - 30, sy + sh + 4}, {sx + sw + 18, sy + sh + 4}}) {
+                    g.fill(c[0], c[1], c[0] + 12, c[1] + 12, 0xFF141414);
+                }
+                g.fill(sx + sw / 2 - 30, sy - 16, sx + sw / 2 + 30, sy - 10, 0xFF202020);
+                g.fill(sx - 6, sy + sh + 8, sx + sw + 6, sy + sh + 10, accent);
+            }
+            case MILITARY -> {
+                // Bolted olive housing with chunky switches.
+                for (int i = 0; i < 6; i++) {
+                    Draw.dot(g, sx - 24, sy + 4 + i * (sh / 5f), 4, 0xFF6A7060);
+                    Draw.dot(g, sx + sw + 24, sy + 4 + i * (sh / 5f), 4, 0xFF6A7060);
+                }
+                for (int i = 0; i < 4; i++) g.fill(sx + 10 + i * 30, sy + sh + 8, sx + 30 + i * 30, sy + sh + 14, 0xFF202418);
+            }
+            case RADAR -> {
+                // Console with knobs and a status strip.
                 for (int i = 0; i < 4; i++) {
-                    g.fill(sx - 24, sy + 8 + i * 22, sx - 12, sy + 22 + i * 22, 0xFF34373C);
-                    g.fill(sx + sw + 12, sy + 8 + i * 22, sx + sw + 24, sy + 22 + i * 22, 0xFF34373C);
+                    Draw.disc(g, sx - 18, sy + 12 + i * 22, 5, 0xFF56606C);
+                    Draw.disc(g, sx + sw + 18, sy + 12 + i * 22, 5, 0xFF56606C);
+                }
+                g.fill(sx - 6, sy + sh + 8, sx + sw + 6, sy + sh + 12, accent);
+            }
+            case GAMING -> {
+                // RGB light strip all the way round.
+                long time = minecraft.level.getGameTime();
+                for (int i = 0; i < 4; i++) {
+                    int c = 0xFF000000 | net.minecraft.util.Mth.hsvToRgb(((time + i * 30) % 120) / 120f, 0.8f, 1f);
+                    int[][] sides = {{sx - 8, sy - 8, sx + sw + 8, sy - 6}, {sx + sw + 6, sy - 8, sx + sw + 8, sy + sh + 8},
+                            {sx - 8, sy + sh + 6, sx + sw + 8, sy + sh + 8}, {sx - 8, sy - 8, sx - 6, sy + sh + 8}};
+                    g.fill(sides[i][0], sides[i][1], sides[i][2], sides[i][3], c);
+                }
+            }
+            case STOCK -> {
+                // Plain head unit: a volume knob and two buttons.
+                Draw.disc(g, sx - 16, sy + sh / 2f, 8, 0xFF303030);
+                g.fill(sx + sw + 10, sy + 10, sx + sw + 24, sy + 22, 0xFF303030);
+                g.fill(sx + sw + 10, sy + 28, sx + sw + 24, sy + 40, 0xFF303030);
+            }
+            case COCKPIT -> {
+                // Avionics bezel: rows of soft keys down both sides.
+                for (int i = 0; i < 6; i++) {
+                    g.fill(sx - 26, sy + 4 + i * (sh / 6), sx - 12, sy + 4 + i * (sh / 6) + 8, 0xFF3A3E44);
+                    g.fill(sx + sw + 12, sy + 4 + i * (sh / 6), sx + sw + 26, sy + 4 + i * (sh / 6) + 8, 0xFF3A3E44);
                 }
             }
         }
@@ -275,15 +333,42 @@ public class DeviceScreen extends Screen {
     /** A stormy sky: deep blue to teal, a supercell's anvil, a funnel touching down, and the StormOS watermark. */
     private void drawWallpaper(GuiGraphics g) {
         int x = appX(), y = appY(), w = appW(), h = appH();
+        DashTheme t = theme();
+        if (t != null) {
+            // The vehicle's own look behind its icons.
+            for (int i = 0; i < h; i += 2) g.fill(x, y + i, x + w, y + i + 2, Draw.lerpColor(t.background, t.panel, i / (float) h));
+            int accent = t.accent(minecraft.level.getGameTime());
+            switch (t) {
+                case MILITARY -> {
+                    for (int i = 0; i < h; i += 3) g.fill(x, y + i, x + w, y + i + 1, 0x18000000);
+                    for (int k = 1; k < 6; k++) g.fill(x, y + k * h / 6, x + w, y + k * h / 6 + 1, 0x2033FF66);
+                }
+                case RADAR -> {
+                    for (int k = 1; k <= 4; k++) Draw.ring(g, x + w / 2f, y + h / 2f, Math.min(w, h) * k / 9f, 0x3030E0FF);
+                }
+                case COCKPIT -> {
+                    g.fill(x, y + h / 2, x + w, y + h, 0x407A5030);
+                    g.fill(x, y + h / 2, x + w, y + h / 2 + 1, 0xFFFFD020);
+                }
+                case DOMINATOR -> {
+                    for (int k = -h; k < w; k += 24) Draw.line(g, x + k, y + h, x + k + h / 3f, y, 3, 0x20FF8C1A);
+                }
+                case GAMING -> g.fill(x, y + h - 3, x + w, y + h, accent);
+                default -> {}
+            }
+            String name = t.format(Component.translatable("entity.interceptors." + vehicle().spec().id()).getString());
+            g.drawString(font, name, x + w - font.width(name) - 6, y + h - 12, accent & 0x90FFFFFF, false);
+            return;
+        }
         for (int i = 0; i < h; i += 2) g.fill(x, y + i, x + w, y + i + 2, Draw.lerpColor(0x0C1630, 0x2A5A60, i / (float) h));
         float cx = x + w * 0.62f, base = y + h * 0.42f;
         for (int k = 0; k < 5; k++) Draw.disc(g, cx - w * 0.25f + k * w * 0.12f, base - (k % 2) * 6, w * 0.11f, 0x60101820);
         g.fill(x + (int) (w * 0.3f), (int) base, x + (int) (w * 0.95f), (int) base + 6, 0x70101820);
         for (int sIdx = 0; sIdx < 14; sIdx++) {
-            float t = sIdx / 14f;
-            int half = (int) (w * 0.05f * (1 - t) + 2);
-            int fy = (int) (base + 6 + t * (h * 0.48f));
-            g.fill((int) cx - half + (int) (Math.sin(t * 3) * 6), fy, (int) cx + half + (int) (Math.sin(t * 3) * 6), fy + (int) (h * 0.035f) + 1, 0x80202830);
+            float f = sIdx / 14f;
+            int half = (int) (w * 0.05f * (1 - f) + 2);
+            int fy = (int) (base + 6 + f * (h * 0.48f));
+            g.fill((int) cx - half + (int) (Math.sin(f * 3) * 6), fy, (int) cx + half + (int) (Math.sin(f * 3) * 6), fy + (int) (h * 0.035f) + 1, 0x80202830);
         }
         g.fill(x, y + h - 8, x + w, y + h, 0x60203018);
         String mark = "StormOS";
@@ -375,10 +460,13 @@ public class DeviceScreen extends Screen {
     /** Along the bottom: the StormOS home button, the open app, then signal, battery, date and clock. */
     private void drawTaskbar(GuiGraphics g, int mouseX, int mouseY) {
         int y = sy + sh - TASKBAR;
-        g.fill(sx, y, sx + sw, sy + sh, 0xF0101418);
-        g.fill(sx, y, sx + sw, y + 1, 0x4030E0FF);
+        DashTheme t = theme();
+        int accent = t == null ? 0xFF30E0FF : t.accent(minecraft.level.getGameTime());
+        g.fill(sx, y, sx + sw, sy + sh, t == null ? 0xF0101418 : t.panel);
+        g.fill(sx, y, sx + sw, y + 1, t == null ? 0x4030E0FF : accent);
         boolean homeHover = mouseX >= sx && mouseX < sx + 52 && mouseY >= y;
-        g.fill(sx + 2, y + 2, sx + 50, sy + sh - 2, homeHover ? 0xFF2A6AC0 : 0xFF1E4A8A);
+        int homeColor = t == null ? 0xFF1E4A8A : Draw.lerpColor(accent & 0xFFFFFF, 0x000000, 0.45f);
+        g.fill(sx + 2, y + 2, sx + 50, sy + sh - 2, homeHover ? accent : homeColor);
         // a little house for "home"
         g.fill(sx + 6, y + 8, sx + 13, y + 13, 0xFFFFFFFF);
         Draw.line(g, sx + 5, y + 8, sx + 9.5f, y + 4, 1, 0xFFFFFFFF);
@@ -386,7 +474,7 @@ public class DeviceScreen extends Screen {
         g.drawString(font, "Home", sx + 17, y + 4, 0xFFFFFF, false);
         App a = app();
         Component open = a == null ? title : Component.translatable("app.interceptors." + a.id());
-        g.drawString(font, open, sx + 56, y + 4, 0xC0C8D0, false);
+        g.drawString(font, t == null ? open : Component.literal(t.format(open.getString())), sx + 56, y + 4, t == null ? 0xC0C8D0 : t.text, false);
 
         int rx = sx + sw - 4;
         long day = minecraft.level.getDayTime() % 24000;

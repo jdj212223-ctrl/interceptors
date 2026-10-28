@@ -212,7 +212,10 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         float z = (float) (seat.z + VehicleModels.DASH_AHEAD) - 0.034f, top = (float) (seat.y + VehicleModels.DASH_TOP);
         float halfWidth = (float) VehicleModels.DASH_HALF_WIDTH, height = (float) (VehicleModels.DASH_TOP - VehicleModels.DASH_BOTTOM);
         VertexConsumer vc = buffers.getBuffer(RenderType.entityCutoutNoCull(Mat.PLAIN.texture));
-        Face face = new Face(pose.last(), vc, 8, 14, 22, FULL_BRIGHT);
+        // The cab screen wears the vehicle's own dash colours (green phosphor in the TIVs, and so on).
+        com.interceptors.client.gui.DashTheme theme = com.interceptors.client.gui.DashTheme.of(v.spec());
+        int bg = theme.background;
+        Face face = new Face(pose.last(), vc, bg >> 16 & 0xFF, bg >> 8 & 0xFF, bg & 0xFF, FULL_BRIGHT);
         face.quad(0, 0, -1, new float[]{halfWidth, top, z}, new float[]{-halfWidth, top, z}, new float[]{-halfWidth, top - height, z},
                 new float[]{halfWidth, top - height, z}, new float[]{0, 0, 1, 0, 1, 1, 0, 1});
 
@@ -244,7 +247,8 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         }
         int y = 0;
         for (Component line : lines) {
-            font.drawInBatch(line, 0, y, 0xFFFFFF, false, pose.last().pose(), buffers, Font.DisplayMode.POLYGON_OFFSET, 0, FULL_BRIGHT);
+            Component shown = theme.military ? Component.literal(line.getString().toUpperCase()).withStyle(st -> st.withColor(theme.text & 0xFFFFFF)) : line;
+            font.drawInBatch(shown, 0, y, 0xFFFFFF, false, pose.last().pose(), buffers, Font.DisplayMode.POLYGON_OFFSET, 0, FULL_BRIGHT);
             y += 10;
         }
         pose.popPose();

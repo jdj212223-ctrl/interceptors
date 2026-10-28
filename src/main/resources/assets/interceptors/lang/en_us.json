@@ -200,5 +200,9 @@
   "message.interceptors.no_launcher": "Only the Dominator 3 has a probe launcher.",
   "message.interceptors.no_probes": "Not enough probes! Reload with copper ingots.",
   "message.interceptors.probe_range": "No tornado close enough to probe (get within 400 m).",
-  "message.interceptors.probe_loaded": "Probe loaded (%s / %s)"
+  "message.interceptors.probe_loaded": "Probe loaded (%s / %s)",
+  "app.interceptors.station": "Weather Station",
+  "app.interceptors.console": "Radar Console",
+  "app.interceptors.radio": "FM Radio",
+  "app.interceptors.avionics": "Avionics"
 }

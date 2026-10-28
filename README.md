@@ -171,6 +171,18 @@ Every app has a letter on its dock icon that is also its keyboard shortcut: **V*
 **Simple Voice Chat** (optional): near a tornado, the voices you hear crunch, crackle and flutter like a phone held
 into the wind, more the louder the roar around you.
 
+**Every vehicle has its own dash** (the car display, the dashboard overlay and the screen in the cab), with the
+same apps underneath:
+
+| Vehicle | Dash look | Car display apps |
+|---|---|---|
+| Dominators | Rugged mounted laptop, silver and black with orange | Vehicle, **Weather Station** (wind, gusts, direction, temperature, dew point, pressure, rain, hail, a minute of wind history), Radar, Intercept, Storms, Probes (Dom 3), Chopper Cam |
+| TIV 1 and 2 | Military green phosphor on black, bolted olive housing | Vehicle, Radar, Intercept, Storms, Chopper Cam |
+| Doppler on Wheels | Radar operator's console | Vehicle, **Radar Console** (with the dish's sweep), Intercept, Storms, Chopper Cam |
+| Gaming van | RGB gaming setup with a light strip round the screen | Tornado Dodge, Vehicle, Radar, Intercept, Storms, Chopper Cam |
+| Rental car | Plain stock screen | Vehicle (just a speedo), **FM Radio** (four stations, and the emergency alert when a tornado is near) |
+| Storm Chopper 4 | Helicopter glass cockpit | **Avionics** (artificial horizon, airspeed, altitude, heading, climb rate), Chopper Cam, Radar, Intercept, Storms |
+
 While driving, the dashboard (top left) shows speed, armor, anchors, the wind where you are, and the nearest tornado:
 its EF rating, wind speed, distance and direction, and which way it's moving.
 
