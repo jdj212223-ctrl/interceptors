@@ -10,14 +10,14 @@ Needs **PMWeather 0.17.13 or newer**. Works next to the Tornado Intercept addon.
 | Vehicle | Armor | Slides at | Anchored holds | Body rated | Notes |
 |---|---|---|---|---|---|
 | Gaming Camper Van | 60 | 75 mph | 115 mph | 100 mph | Frantic Dan-style white high-roof camper. Fastest, RGB gaming lights, leveling jacks. |
-| Dominator 1 (Slide 1) | 120 | 95 mph | 160 mph | 150 mph | Reed Timmer's armored Tahoe. Push bar, weather mast, ground spikes. |
-| Dominator 2 | 160 | 110 mph | 185 mph | 175 mph | Longer armored Yukon XL. Side skirts drop to the road with the anchors. |
-| Dominator 3 (Fail 3) | 220 | 130 mph | 230 mph | 220 mph | The big angular armored truck: skirts plus three pairs of spikes. |
+| Dominator 1 (Slide 1) | 130 | 120 mph | 170 mph | 170 mph | Reed Timmer's armored Tahoe (8,000 lb, built for 170 mph). Push bar, weather mast, ground spikes, roll cage and racing harnesses inside. |
+| Dominator 2 | 160 | 125 mph | 185 mph | 185 mph | Longer armored Yukon XL. Side skirts drop to the road with the anchors. Roll cage inside. |
+| Dominator 3 (Fail 3) | 220 | 140 mph | 200 mph | 200 mph | The big armored F-350 (11,000 lb, armor rated for EF5 winds of 200 mph): skirts, three pairs of spikes, gull-wing doors. |
 | TIV 1 | 200 | 120 mph | 200 mph | 200 mph | The first Tornado Intercept Vehicle. Slowest, louvered armor glass, 2 seats. |
 | Doppler on Wheels | 90 | 85 mph | 130 mph | 115 mph | Radar truck with a spinning dish; screens inside see twice as far. 2 seats. |
-| TIV 2 | 240 | 130 mph | 220 mph | 230 mph | Our own TIV 2-style design: a low armored wedge with a rotating camera turret. 3 seats. |
+| TIV 2 | 250 | 150 mph | 220 mph | 220 mph | Our own TIV 2-style design: a low armored wedge on three axles (the real one weighs 7 to 9 tons) with a rotating camera turret. 3 seats. |
 | Rental Car | 30 | 55 mph | no anchors | 70 mph | For when your interceptor is wrecked and you're stranded. Cheap, keeps you chasing. |
-| Storm Chopper 4 | 70 | flies | no anchors | 90 mph | "Dom 4": a storm news helicopter. Space climbs, X descends; films the tornado for the ground team (Chopper Cam app). Strong wind throws it around; with no pilot or a dead engine it autorotates down. 4 seats. |
+| Storm Chopper 4 | 70 | flies | no anchors | 90 mph | "Dom 4": a storm news helicopter. Space climbs, X descends; films the tornado for the ground team (Chopper Cam app). Strong wind throws it around; with no pilot or a dead engine it autorotates down. Bell 407 size: 10.7 m rotor, long tail boom. 5 seats. |
 
 The Gaming Camper Van is hollow inside: wood paneling, a gaming desk with a big monitor and RGB tower, a sofa bed,
 kitchenette and fridge, red SUBSCRIBE lettering on the sides, and a roof solar battery that runs its screens (it
@@ -26,6 +26,13 @@ drains while someone's inside and recharges in the sun).
 - **Slides at**: wind the tires can handle. Above it the vehicle gets pushed, and at about 1.5x it starts to lift off.
 - **Anchored holds**: the same with the anchors down.
 - **Body rated**: above this the wind damages the vehicle, anchors or not. Fix it by right-clicking with iron ingots.
+- **Side-on is worse**: wind hitting the side of a vehicle pushes up to 1.3x harder than wind from the front (the
+  real Dom 3 deflects a head-on tornado but can still tip side-on). Park nose into the wind.
+
+Numbers come from what's published about the real vehicles: the Dominator 1 (2007 Tahoe, about 8,000 lb, built for
+170 mph), Dominator 3 (2013 F-350, about 11,000 lb, armor rated for 200 mph EF5 winds), TIV 2 (7 to 9 tons, three
+axles, steel turret) and the Bell 407 helicopter (10.7 m rotor, 2 crew plus 5 passengers). The Dominator 2 has no
+published rating, so it sits between the other two.
 
 ## Things break (like in the videos)
 
@@ -79,6 +86,26 @@ with iron ingots. Turn failures down or off in `interceptors-server.toml` (`fail
   within 3 km) listing the nearby biomes as counties, a right column with a velocity radar of the real storms, a
   follower counter and viewer chat, and a bottom strip with the watch number and its countdown, the in-game date
   and time, and a scrolling ticker of the live storm data.
+
+## Even more real (2.1)
+
+- **Gull-wing doors (Dominator 3):** the driver and passenger doors swing up off the roof edge when someone gets in
+  or out, then drop shut.
+- **Glass that shatters for real:** blown-out windows leave jagged teeth of glass around each frame instead of just
+  vanishing, with a burst of glass shards and the breaking sound (also when worn-out glass finally gives way).
+- **Mud:** as grime builds up, a see-through layer of real-looking mud cakes the body, thick at the wheels and
+  splattered higher up (from 20% grime; heavy from the warning level). With the windows gone, it blows in onto the
+  seats too. Wash it off with a water bucket.
+- **Hail where it should be:** the hail haze and streaks only show when you're out under open sky. Indoors you see
+  none; in a vehicle with good windows you hear it hammer the roof and see ice chips hit the outside of the glass.
+- **Frozen computer:** a hung car display keeps showing its last picture, washed out and torn, with a frozen
+  spinner and a "StormOS (Not Responding)" box; nothing you click works until you hold **G** to reboot. The dash
+  screen in the cab freezes on its last frame the same way.
+- **Stuck hailstones:** giant hail can lodge in your head, chest, an arm or a leg when you're caught outside. It
+  slows you a little and melts out by itself in a minute. Pulling it out early (**J**) is a big mistake: the wound
+  bleeds for 20 seconds (about 6 hearts in all). Server setting `injuries.hailInjuries` turns this off.
+- **Gore setting:** all blood is blocky Minecraft pixels. Turn it off completely with `gore.blood = false` in
+  `config/interceptors-client.toml`: no cuts, wounds, drips or red flash (you still get hurt).
 
 ## Dominator 3 gear
 
@@ -140,6 +167,7 @@ capturing the game with it works the same as step 1 and 2.
 | B | Storm-chase livestream overlay on / off |
 | K | Lexan window shield up / down (Dominator 1) |
 | P | Launch weather probes (Dominator 3) |
+| J | Pull out a stuck hailstone (don't! it bleeds) |
 | Space / X | Helicopter: climb / descend |
 | Sneak + punch | Pack the vehicle back into its item |
 
