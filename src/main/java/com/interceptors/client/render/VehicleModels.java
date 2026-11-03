@@ -30,6 +30,8 @@ public final class VehicleModels {
     public static final int WHEEL = 64;
     /** On the front axle: also turns left and right with the steering. */
     public static final int FRONT = 128;
+    /** A gull-wing door panel: swings up around the roof edge when someone gets in or out. */
+    public static final int DOOR = 256;
 
     /**
      * A box whose top face can be pulled in to make slopes: {@code insetFront/Back/Side} shrink the top face from
@@ -100,10 +102,19 @@ public final class VehicleModels {
                 if (hasSeat) continue;
                 // A seated rider's hips are about 0.15 above their seat point, so the cushion top goes there.
                 double sx = seat.x, sy = seat.y, sz = seat.z;
+                boolean racing = spec.id().startsWith("dominator");
+                int cloth = racing ? 0x2A2A2E : 0x4A4E54;
                 b.in(Mat.FABRIC, f -> f
-                        .box(sx - 0.24, sy - 0.2, sz - 0.3, sx + 0.24, sy + 0.13, sz + 0.2, 0x4A4E54)
-                        .box(sx - 0.24, sy + 0.13, sz - 0.42, sx + 0.24, sy + 0.85, sz - 0.3, 0x4A4E54)
+                        .box(sx - 0.24, sy - 0.2, sz - 0.3, sx + 0.24, sy + 0.13, sz + 0.2, cloth)
+                        .box(sx - 0.24, sy + 0.13, sz - 0.42, sx + 0.24, sy + 0.85, sz - 0.3, cloth)
                         .box(sx - 0.15, sy + 0.85, sz - 0.41, sx + 0.15, sy + 1.0, sz - 0.31, 0x3A3E44));
+                if (racing) {
+                    // Racing seats with red five-point harness straps, like the Dominators'.
+                    b.in(Mat.FABRIC, f -> f
+                            .box(sx - 0.14, sy + 0.2, sz - 0.3, sx - 0.08, sy + 0.84, sz - 0.29, 0xC02020)
+                            .box(sx + 0.08, sy + 0.2, sz - 0.3, sx + 0.14, sy + 0.84, sz - 0.29, 0xC02020)
+                            .box(sx - 0.2, sy + 0.13, sz - 0.3, sx + 0.2, sy + 0.17, sz - 0.29, 0xC02020));
+                }
             }
             net.minecraft.world.phys.Vec3 driver = spec.seats().get(0);
             double dz = driver.z + DASH_AHEAD, dy = driver.y;
@@ -195,12 +206,39 @@ public final class VehicleModels {
          * front, between heights {@code y0}..{@code y1} and from {@code zb} (back) to {@code zf} (windshield).
          */
         Builder cab(double hw, double y0, double y1, double zb, double zf, int body) {
+            return cab(hw, y0, y1, zb, zf, body, 0);
+        }
+
+        /** A cab whose side windows carry {@code doorFlags} (DOOR for gull-wing doors). */
+        Builder cab(double hw, double y0, double y1, double zb, double zf, int body, int doorFlags) {
             pair(hw - 0.06, y0, zb, hw, y1, zb + 0.1, body);
             pair(hw - 0.06, y0, zf - 0.12, hw, y1, zf, body);
             box(-hw, y1, zb, hw, y1 + 0.12, zf, body);
             return in(Mat.GLASS, b -> b
-                    .pair(hw - 0.04, y0, zb + 0.1, hw, y1, zf - 0.12, NEUTRAL, CLEAR)
+                    .pair(hw - 0.04, y0, zb + 0.1, hw, y1, zf - 0.12, NEUTRAL, CLEAR | doorFlags)
                     .box(-hw + 0.06, y0, zf - 0.08, hw - 0.06, y1, zf, NEUTRAL, CLEAR));
+        }
+
+        /**
+         * An internal roll cage like the Dominators': tubes up each corner of the cab, hoops across the roof, and
+         * rails along it, all inside the body and clear of the riders.
+         */
+        Builder cage(double hw, double y0, double y1, double zb, double zf) {
+            double x = hw - 0.14, t = 0.035;
+            return in(Mat.STEEL, b -> {
+                for (double z : new double[]{zb + 0.16, zf - 0.22}) {
+                    b.pair(x - t, y0, z - t, x + t, y1 - 0.02, z + t, 0x6A6E72);
+                    b.box(-x, y1 - 0.07, z - t, x, y1 - 0.02, z + t, 0x6A6E72);
+                }
+                b.pair(x - t, y1 - 0.07, zb + 0.16, x + t, y1 - 0.02, zf - 0.22, 0x6A6E72);
+            });
+        }
+
+        /** One axle: a pair of tires and rims at {@code z}. */
+        Builder axle(double halfTrack, double radius, double z, boolean front) {
+            int flags = WHEEL | (front ? FRONT : 0);
+            in(Mat.TIRE, b -> b.pair(halfTrack - 0.28, 0, z - radius, halfTrack + 0.02, radius * 2, z + radius, NEUTRAL, flags));
+            return in(Mat.RIM, b -> b.pair(halfTrack + 0.02, radius * 0.2, z - radius * 0.8, halfTrack + 0.04, radius * 1.8, z + radius * 0.8, NEUTRAL, flags));
         }
 
         /**
@@ -368,6 +406,7 @@ public final class VehicleModels {
                 .wedge(-0.97, 0.55, 1.2, 0.97, 1.28, 2.45, body, 0.1, 0, 0.03, 0.12)
                 .room(1.0, 1.3, 2.37, -2.45, -0.2, body)
                 .cab(1.0, 1.3, 2.25, -0.2, 1.2, body)
+                .cage(1.0, 0.75, 2.25, -0.2, 1.2)
                 .windows(1.0, 1.75, -2.0, 1.03, 2.0, -0.6)
                 // armor cage over the glass, push bar, anemometer mast
                 .in(Mat.STEEL, b -> b
@@ -399,6 +438,7 @@ public final class VehicleModels {
                 .room(1.05, 1.35, 2.42, -2.75, -0.1, body)
                 .wedge(-1.05, 2.3, -2.75, 1.05, 2.48, -0.1, body, 0, 0.25, 0.1, 0)
                 .cab(1.05, 1.35, 2.3, -0.1, 1.3, body)
+                .cage(1.05, 0.8, 2.3, -0.1, 1.3)
                 .windows(1.05, 1.8, -2.3, 1.08, 2.05, -0.5)
                 .in(Mat.PAINT, b -> b
                         .pair(1.05, 1.1, -2.75, 1.08, 1.22, 2.5, orange)
@@ -432,10 +472,11 @@ public final class VehicleModels {
                 .tub(1.15, 0.6, 0.7, 1.25, -3.0, 2.0, 0.95, body)
                 .wedge(-1.1, 0.6, 2.0, 1.1, 1.5, 3.05, body, 0.5, 0, 0.15, 0.45)
                 // armor under the slits, the slits, the helmet over the cab
-                .pair(1.0, 1.25, -0.4, 1.1, 1.75, 1.55, body)
+                .pair(1.0, 1.25, -0.4, 1.1, 1.75, 1.55, body, DOOR)
                 .box(-1.1, 1.25, 1.45, 1.1, 1.75, 1.55, body)
                 .wedge(-1.1, 1.25, 1.55, 1.1, 1.75, 2.0, body, 0.3, 0, 0.1, 0.1)
-                .cab(1.05, 1.75, 2.12, -0.4, 1.55, body)
+                .cab(1.05, 1.75, 2.12, -0.4, 1.55, body, DOOR)
+                .cage(1.1, 0.7, 2.12, -0.4, 1.55)
                 .wedge(-1.1, 2.24, -0.6, 1.1, 2.62, 1.6, body, 0.55, 0.1, 0.3, 0.12)
                 // armored crew area behind the cab, faceted roof, small rear window slits
                 .room(1.15, 1.25, 2.3, -3.0, -0.4, body)
@@ -559,7 +600,7 @@ public final class VehicleModels {
                         .box(-1.15, 0.35, 2.9, 1.15, 0.8, 3.1, 0x8A8E80))
                 .lights(1.1, 0.75, 3.0, -3.0)
                 .doors(1.2, 0.7, 1.45, 1.3, new double[]{-0.48, 1.28}, new double[]{-0.3})
-                .wheels(1.15, 0.55, 2.0, -2.0)
+                .axle(1.15, 0.55, 2.0, true).axle(1.15, 0.55, -0.95, false).axle(1.15, 0.55, -2.15, false)
                 .spike(0.6, 1.2, 0.6).spike(0.6, -2.4, 0.6)
                 .decal("TIV 2", 0xE8E2C8, 1.21, 2.3, -1.8, 0.05);
         for (double y : new double[]{1.75, 1.98, 2.28}) {
@@ -579,15 +620,15 @@ public final class VehicleModels {
                 .wedge(-0.7, 2.07, -0.7, 0.7, 2.35, 1.2, WHITE, 0.5, 0.2, 0.2, 0.1)
                 .box(-0.5, 2.07, -1.4, 0.5, 2.3, -0.7, WHITE)
                 // tail boom, fin, stabilizer, tail rotor
-                .box(-0.15, 1.4, -4.6, 0.15, 1.75, -0.77, WHITE)
-                .box(-0.04, 1.6, -4.8, 0.04, 2.6, -4.3, WHITE)
-                .box(-0.6, 1.5, -4.1, 0.6, 1.56, -3.8, WHITE)
+                .box(-0.15, 1.4, -6.6, 0.15, 1.75, -0.77, WHITE)
+                .box(-0.04, 1.6, -6.85, 0.04, 2.9, -6.3, WHITE)
+                .box(-0.7, 1.5, -6.0, 0.7, 1.56, -5.65, WHITE)
                 .in(Mat.PAINT, b -> b
                         .pair(0.75, 0.6, -0.77, 0.77, 0.68, 2.0, blue)
                         .pair(0.75, 0.68, -0.77, 0.77, 0.72, 2.0, RED)
-                        .pair(0.15, 1.52, -4.5, 0.16, 1.6, -0.8, blue))
+                        .pair(0.15, 1.52, -6.4, 0.16, 1.6, -0.8, blue))
                 .in(Mat.PLASTIC, b -> b
-                        .box(0.15, 1.3, -4.75, 0.18, 2.1, -4.6, NEUTRAL)
+                        .box(0.15, 1.2, -6.8, 0.18, 2.3, -6.6, NEUTRAL)
                         .box(-0.15, 0.15, 1.8, 0.15, 0.4, 2.1, NEUTRAL))
                 .window(-0.1, 0.2, 2.1, 0.1, 0.35, 2.12)
                 // skids and struts
@@ -599,16 +640,16 @@ public final class VehicleModels {
                         .box(-0.15, 2.6, 0.1, 0.15, 2.7, 0.4, STEEL_TINT, SPIN))
                 // two long rotor blades crossing at the hub
                 .in(Mat.PLASTIC, b -> b
-                        .box(-0.08, 2.65, -3.25, 0.08, 2.69, 3.75, 0x202020, SPIN)
-                        .box(-3.5, 2.65, 0.17, 3.5, 2.69, 0.33, 0x202020, SPIN))
+                        .box(-0.09, 2.65, -5.08, 0.09, 2.69, 5.58, 0x202020, SPIN)
+                        .box(-5.33, 2.65, 0.16, 5.33, 2.69, 0.34, 0x202020, SPIN))
                 // nav lights: red on the left, green on the right
                 .in(Mat.PLAIN, b -> b
                         .box(0.75, 1.4, 1.2, 0.79, 1.46, 1.26, 0xFF2020, GLOW)
                         .box(-0.79, 1.4, 1.2, -0.75, 1.46, 1.26, 0x20FF20, GLOW)
-                        .box(-0.04, 2.6, -4.85, 0.04, 2.66, -4.8, 0xFFFFFF, GLOW))
+                        .box(-0.04, 2.9, -6.9, 0.04, 2.96, -6.85, 0xFFFFFF, GLOW))
                 .doors(0.75, 0.4, 0.9, 0.8, new double[]{-0.7, 0.35, 1.45}, new double[]{0.2, 1.3})
                 .decal("STORM CHOPPER 4", 0x1E50C8, 0.77, 0.86, 0.4, 0.011)
-                .decal("4", 0x1E50C8, 0.16, 1.74, -2.7, 0.03)
+                .decal("4", 0x1E50C8, 0.16, 1.74, -3.6, 0.03)
                 .build();
     }
 

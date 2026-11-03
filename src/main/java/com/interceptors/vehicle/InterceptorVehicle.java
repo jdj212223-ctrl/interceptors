@@ -895,7 +895,7 @@ public class InterceptorVehicle extends Entity {
 
         Vec3 wind = forcedWind != null ? forcedWind : Storms.windAt(level(), position().add(0, spec.height() / 2, 0));
         lastWind = wind;
-        Vec3 push = WindPhysics.push(spec, isAnchored(), wind);
+        Vec3 push = WindPhysics.push(spec, isAnchored(), wind).scale(WindPhysics.sideFactor(wind, getYRot()));
         drift = new Vec3(drift.x * (onGround() ? 0.8 : 0.98), 0, drift.z * (onGround() ? 0.8 : 0.98)).add(push.x, 0, push.z);
 
         Vec3 facing = Vec3.directionFromRotation(0, getYRot());

@@ -29,6 +29,18 @@ public final class WindPhysics {
         return slide.add(0, lift, 0);
     }
 
+    /**
+     * Wind from the side shoves a vehicle harder than wind on the nose, which its shape deflects: 0.8 head-on or
+     * tail-on, up to 1.3 broadside. {@code yaw} is the vehicle's facing.
+     */
+    public static double sideFactor(Vec3 wind, float yaw) {
+        Vec3 flat = new Vec3(wind.x, 0, wind.z);
+        if (flat.lengthSqr() < 1e-6) return 1;
+        Vec3 facing = Vec3.directionFromRotation(0, yaw);
+        double along = Math.abs(flat.normalize().dot(facing));
+        return 0.8 + 0.5 * (1 - along);
+    }
+
     /** Body damage per second from wind over the vehicle's rating. Anchors don't help here: they hold, they don't armor. */
     public static float damagePerSecond(VehicleSpec spec, double mph) {
         if (mph <= spec.ratedWind()) return 0;
