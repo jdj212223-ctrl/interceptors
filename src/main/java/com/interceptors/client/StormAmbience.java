@@ -25,7 +25,7 @@ public final class StormAmbience {
 
     static void tick(Minecraft mc) {
         if (mc.level == null || mc.player == null) {
-            roarLevel = hailLevel = 0;
+            roarLevel = hailLevel = exposedHail = 0;
             return;
         }
         Vec3 eye = mc.gameRenderer.getMainCamera().getPosition();
@@ -35,6 +35,8 @@ public final class StormAmbience {
         float h = Storms.hailAt(mc.level, eye);
         boolean underSky = mc.level.canSeeSky(mc.player.blockPosition().above());
         hailLevel = mc.player.getVehicle() instanceof InterceptorVehicle ? h : underSky ? h * 0.7f : h * 0.2f;
+        // What you can actually see: nothing indoors or behind a vehicle's glass (that shows as ice on the windows).
+        exposedHail = underSky && !sheltered ? h : 0;
         roar = keep(mc, roar, ModSounds.WIND_ROAR.get(), roarLevel, true);
         hail = keep(mc, hail, ModSounds.HAIL.get(), hailLevel, false);
     }
@@ -49,6 +51,13 @@ public final class StormAmbience {
 
     public static float roarLevel() {
         return roarLevel;
+    }
+
+    static float exposedHail;
+
+    /** Hail you're standing out in, under open sky (or with the windows blown out): drives the haze and streaks. */
+    public static float exposedHail() {
+        return exposedHail;
     }
 
     public static float hailLevel() {

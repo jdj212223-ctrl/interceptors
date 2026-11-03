@@ -122,16 +122,18 @@ public final class VehicleHud {
         if (now - burstAt < 25) {
             // A red vignette closing in from the edges, fading over about a second.
             float fade = 1 - (now - burstAt) / 25f;
+            // Red with the gore on, a white glass flash with it off.
+            int tint = com.interceptors.client.InjuryState.blood() ? 0xB00808 : 0xD8E4EC;
             int gw = g.guiWidth(), gh = g.guiHeight(), depth = Math.min(gw, gh) / 4;
             for (int i = 0; i < depth; i += 2) {
                 int alpha = (int) (170 * fade * (1 - i / (float) depth));
-                int c = alpha << 24 | 0xB00808;
+                int c = alpha << 24 | tint;
                 g.fill(i, i, gw - i, i + 2, c);
                 g.fill(i, gh - i - 2, gw - i, gh - i, c);
                 g.fill(i, i + 2, i + 2, gh - i - 2, c);
                 g.fill(gw - i - 2, i + 2, gw - i, gh - i - 2, c);
             }
-            g.fill(0, 0, gw, gh, (int) (50 * fade) << 24 | 0xB00808);
+            g.fill(0, 0, gw, gh, (int) (50 * fade) << 24 | tint);
         }
         if (!v.spec().hasLexan()) return;
         int x = BroadcastHud.enabled ? 10 : 6, y = (BroadcastHud.enabled ? BroadcastHud.TOP + 10 : 6) + 74 + 2;

@@ -182,19 +182,15 @@ public class InterceptorVehicle extends Entity {
         if (level() instanceof ServerLevel server) {
             server.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, net.minecraft.world.level.block.Blocks.GLASS.defaultBlockState()),
                     getX(), getY() + spec.height() * 0.7, getZ(), 60, spec.width() / 3, 0.4, spec.width() / 3, 0.2);
-            var blood = new net.minecraft.core.particles.DustParticleOptions(new org.joml.Vector3f(0.8f, 0.04f, 0.04f), 1.6f);
             for (Entity rider : getPassengers()) {
                 // Up front, right by the windshield and door glass, it's worse than in the back.
                 int seat = seatOf(rider);
                 rider.hurt(damageSources().source(FLYING_GLASS), seat >= 0 && seat < 2 ? 5.0f : 2.0f);
-                // Blocky red bits in front of the rider's face, where they (and anyone nearby) can see them.
-                Vec3 face = rider.getEyePosition().add(rider.getLookAngle().scale(0.5));
-                server.sendParticles(blood, face.x, face.y - 0.15, face.z, 20, 0.25, 0.2, 0.25, 0);
-                server.sendParticles(blood, rider.getX(), rider.getY() + 0.9, rider.getZ(), 12, 0.3, 0.3, 0.3, 0);
                 if (rider instanceof net.minecraft.server.level.ServerPlayer sp) {
                     net.neoforged.neoforge.network.PacketDistributor.sendToPlayer(sp, new com.interceptors.network.GlassBurstPayload());
                 }
-                // The cut stays on their face for a couple of minutes, for everyone who can see them.
+                // The cut (and a spray of blocky blood, drawn on each client so the gore setting can hide it) stays on
+                // their face for a couple of minutes, for everyone who can see them.
                 net.neoforged.neoforge.network.PacketDistributor.sendToPlayersTrackingEntityAndSelf(rider,
                         new com.interceptors.network.CutPayload(rider.getId(), CUT_TICKS));
             }
@@ -269,10 +265,28 @@ public class InterceptorVehicle extends Entity {
         return null;
     }
 
+    /** How long the gull-wing doors stay up when someone gets in or out (client side, just for looks). */
+    private static final int DOOR_OPEN_TICKS = 30;
+    private int doorTimer;
+    private float door, doorO;
+
+    private void swingDoors() {
+        doorO = door;
+        if (doorTimer > 0) doorTimer--;
+        // Up quickly on the gas struts, down a little slower.
+        door = doorTimer > 0 ? Math.min(1, door + 0.12f) : Math.max(0, door - 0.08f);
+    }
+
+    /** How far the gull-wing doors are swung up, 0 shut to 1 fully open. */
+    public float doorOpen(float partialTick) {
+        return Mth.lerp(partialTick, doorO, door);
+    }
+
     /** Getting in takes the first free seat, the driver's first. Nobody else moves. */
     @Override
     protected void addPassenger(Entity passenger) {
         super.addPassenger(passenger);
+        if (level().isClientSide) doorTimer = DOOR_OPEN_TICKS;
         if (level().isClientSide || seatOf(passenger) >= 0) return;
         CompoundTag seats = entityData.get(SEATS).copy();
         for (int i = 0; i < spec.seats().size(); i++) {
@@ -288,6 +302,7 @@ public class InterceptorVehicle extends Entity {
     @Override
     protected void removePassenger(Entity passenger) {
         super.removePassenger(passenger);
+        if (level().isClientSide) doorTimer = DOOR_OPEN_TICKS;
         if (level().isClientSide) return;
         int seat = seatOf(passenger);
         if (seat < 0) return;
@@ -550,7 +565,12 @@ public class InterceptorVehicle extends Entity {
         setCondition(part, after);
         if (!Part.failed(before) && Part.failed(after)) {
             tellRiders("message.interceptors.part_failed", Component.translatable("part.interceptors." + part.id()));
-            playVehicleSound(SoundEvents.ITEM_BREAK);
+            playVehicleSound(part == Part.WINDOWS ? SoundEvents.GLASS_BREAK : SoundEvents.ITEM_BREAK);
+            if (part == Part.WINDOWS && level() instanceof ServerLevel server) {
+                // Worn-out glass gives way: shards rain down around the cab.
+                server.sendParticles(new net.minecraft.core.particles.BlockParticleOption(ParticleTypes.BLOCK, net.minecraft.world.level.block.Blocks.GLASS.defaultBlockState()),
+                        getX(), getY() + spec.height() * 0.7, getZ(), 40, spec.width() / 3, 0.3, spec.width() / 3, 0.1);
+            }
             if (part == Part.HYDRAULICS && (isAnchored() || getDeploy() > 0)) {
                 // Hydraulic pressure gone: the spikes and skirts pop back up.
                 setAnchored(false);
@@ -803,7 +823,10 @@ public class InterceptorVehicle extends Entity {
         if (!level().isClientSide) serverTick();
         super.tick();
         tickLerp();
-        if (level().isClientSide) turnWheels();
+        if (level().isClientSide) {
+            turnWheels();
+            swingDoors();
+        }
         if (isControlledByLocalInstance()) {
             LivingEntity driver = getControllingPassenger();
             simulate(driver == null ? 0 : driver.zza, driver == null ? 0 : driver.xxa);

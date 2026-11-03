@@ -6,6 +6,7 @@ import net.neoforged.neoforge.common.ModConfigSpec;
 public final class ClientConfig {
     public static final ModConfigSpec SPEC;
     public static final ModConfigSpec.BooleanValue CLEAN_HUD;
+    public static final ModConfigSpec.BooleanValue BLOOD;
     public static final ModConfigSpec.BooleanValue OBS_ENABLED;
     public static final ModConfigSpec.ConfigValue<String> OBS_HOST;
     public static final ModConfigSpec.IntValue OBS_PORT;
@@ -15,6 +16,10 @@ public final class ClientConfig {
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
+        b.push("gore");
+        BLOOD = b.comment("Show blocky pixel blood: glass cuts, hail wounds, drips and the red flash. Off = no blood at all (you still get hurt).")
+                .define("blood", true);
+        b.pop();
         b.push("stream");
         CLEAN_HUD = b.comment("While the stream overlay (B) is on, hide the hotbar, health, hunger, XP and crosshair so the capture looks clean.")
                 .define("cleanHud", true);

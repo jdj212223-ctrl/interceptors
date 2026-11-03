@@ -30,5 +30,8 @@ public final class Keys {
     public static final KeyMapping DESCEND = new KeyMapping("key.interceptors.descend", KeyConflictContext.IN_GAME,
             InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_X, CATEGORY);
 
+    public static final KeyMapping PULL_HAIL = new KeyMapping("key.interceptors.pull_hail", KeyConflictContext.IN_GAME,
+            InputConstants.Type.KEYSYM, GLFW.GLFW_KEY_J, CATEGORY);
+
     private Keys() {}
 }

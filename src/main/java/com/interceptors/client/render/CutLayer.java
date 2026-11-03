@@ -42,16 +42,19 @@ public class CutLayer extends RenderLayer<AbstractClientPlayer, PlayerModel<Abst
         return LayerDefinition.create(HumanoidModel.createMesh(new CubeDeformation(0.04f), 0f), 64, 64);
     }
 
-    public static void cut(int entityId, int ticks) {
+    public static void cut(int entityId, int ticks, boolean splatter) {
         Minecraft mc = Minecraft.getInstance();
-        if (mc.level != null) CUTS.put(entityId, mc.level.getGameTime() + ticks);
+        if (mc.level == null) return;
+        CUTS.put(entityId, mc.level.getGameTime() + ticks);
+        net.minecraft.world.entity.Entity e = mc.level.getEntity(entityId);
+        if (splatter && e != null) com.interceptors.client.InjuryState.splatter(e);
     }
 
     @Override
     public void render(PoseStack pose, MultiBufferSource buffers, int light, AbstractClientPlayer player, float limbSwing, float limbSwingAmount,
                        float partialTick, float ageInTicks, float netHeadYaw, float headPitch) {
         Long until = CUTS.get(player.getId());
-        if (until == null) return;
+        if (until == null || !com.interceptors.client.InjuryState.blood()) return;
         long left = until - player.level().getGameTime();
         if (left <= 0 || player.getHealth() >= player.getMaxHealth() || !player.isAlive()) {
             CUTS.remove(player.getId());

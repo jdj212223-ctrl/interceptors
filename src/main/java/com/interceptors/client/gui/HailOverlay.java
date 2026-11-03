@@ -12,7 +12,7 @@ public final class HailOverlay {
 
     public static void render(GuiGraphics g, DeltaTracker delta) {
         Minecraft mc = Minecraft.getInstance();
-        float hail = StormAmbience.hailLevel();
+        float hail = StormAmbience.exposedHail();
         if (hail < 0.05f || mc.options.hideGui || mc.level == null) return;
         int w = g.guiWidth(), h = g.guiHeight();
         g.fill(0, 0, w, h, (int) (Mth.clamp(hail, 0, 1) * 110) << 24 | 0xC8CED4);

@@ -8,6 +8,7 @@ public final class InterceptorsConfig {
     public static final ModConfigSpec.BooleanValue FAILURES;
     public static final ModConfigSpec.DoubleValue WEAR_RATE;
     public static final ModConfigSpec.DoubleValue FREEZE_RATE;
+    public static final ModConfigSpec.BooleanValue HAIL_INJURIES;
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
@@ -18,6 +19,10 @@ public final class InterceptorsConfig {
                 .defineInRange("wearRate", 1.0, 0.0, 5.0);
         FREEZE_RATE = b.comment("How often the anchor computer freezes in a storm. 0 turns freezing off.")
                 .defineInRange("freezeRate", 1.0, 0.0, 5.0);
+        b.pop();
+        b.push("injuries");
+        HAIL_INJURIES = b.comment("Giant hail can lodge in a player caught outside. It melts out by itself; pulling it out early makes it bleed.")
+                .define("hailInjuries", true);
         b.pop();
         SPEC = b.build();
     }

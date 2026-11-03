@@ -102,6 +102,7 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                         pose.popPose();
                         continue;
                     }
+                    if ((f & VehicleModels.DOOR) != 0) swingDoor(pose, b, vehicle, partialTick);
                     if ((f & VehicleModels.SPIN) != 0 && pivot != null) {
                         float px = (pivot.x0() + pivot.x1()) / 2, pz = (pivot.z0() + pivot.z1()) / 2;
                         pose.translate(px, 0, pz);
@@ -116,6 +117,7 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                 }
             }
         }
+        overlays(vehicle, groups, pose, buffers, light, drop, partialTick);
         pose.pushPose();
         pose.translate(0, -drop, 0);
         if (health >= TORN_BELOW) decals(id, pose, buffers, light);
@@ -136,12 +138,73 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
     private static Mat worn(Mat mat, InterceptorVehicle v, float health) {
         if (mat == Mat.GLASS) {
             int windows = v.condition(Part.WINDOWS);
-            if (Part.failed(windows)) return null;
+            if (Part.failed(windows)) return Mat.SHARDS;
             if (Part.warning(windows)) return Mat.GLASS_CRACKED;
         }
         if (health < DENTED_BELOW && mat == Mat.PAINT) return Mat.PAINT_DENTED;
         if (health < DENTED_BELOW && mat == Mat.ARMOR) return Mat.ARMOR_DENTED;
         return mat;
+    }
+
+    /** How far up the gull-wing doors swing when fully open. */
+    private static final float DOOR_ANGLE = 75;
+
+    /** Gull-wing doors: hinged along the roof edge, so they lift up and out on their own side. */
+    private static void swingDoor(PoseStack pose, VehicleModels.Box b, InterceptorVehicle v, float partialTick) {
+        float open = v.doorOpen(partialTick);
+        if (open <= 0) return;
+        float[] hinge = HINGE.computeIfAbsent(v.spec().id(), id -> {
+            float x = 0, y = 0;
+            for (VehicleModels.Box d : VehicleModels.get(id)) {
+                if ((d.flags() & VehicleModels.DOOR) == 0) continue;
+                x = Math.max(x, Math.max(Math.abs(d.x0()), Math.abs(d.x1())));
+                y = Math.max(y, d.y1());
+            }
+            return new float[]{x, y};
+        });
+        float side = Math.signum(b.x0() + b.x1());
+        float eased = open * open * (3 - 2 * open);
+        pose.translate(side * hinge[0], hinge[1], 0);
+        pose.mulPose(Axis.ZP.rotationDegrees(side * DOOR_ANGLE * eased));
+        pose.translate(-side * hinge[0], -hinge[1], 0);
+    }
+
+    private static final Map<String, float[]> HINGE = new ConcurrentHashMap<>();
+
+    /** Below this much grime, the body is just dusty; mud starts showing from here, and gets thick at GRIME_WARN. */
+    private static final float MUD_FROM = 20;
+
+    /**
+     * Layers drawn just over the top of the model: mud caked on the outside (and blown in onto the seats and
+     * floor once the windows are gone), and hail chips on the outside of the glass while it's hailing.
+     */
+    private static void overlays(InterceptorVehicle v, Map<Mat, List<VehicleModels.Box>> groups, PoseStack pose,
+                                 MultiBufferSource buffers, int light, float drop, float partialTick) {
+        float grime = v.getGrime();
+        boolean windowsGone = Part.failed(v.condition(Part.WINDOWS));
+        Mat mud = grime >= InterceptorVehicle.GRIME_WARN ? Mat.MUD_HEAVY : grime >= MUD_FROM ? Mat.MUD_LIGHT : null;
+        boolean hail = !windowsGone && com.interceptors.compat.Storms.hailAt(v.level(), v.position()) > 0.1f;
+        if (mud == null && !hail) return;
+        for (Map.Entry<Mat, List<VehicleModels.Box>> group : groups.entrySet()) {
+            Mat base = group.getKey();
+            boolean outside = base == Mat.PAINT || base == Mat.ARMOR || base == Mat.STEEL || base == Mat.PLASTIC || base == Mat.TIRE;
+            boolean inside = windowsGone && (base == Mat.FABRIC || base == Mat.VINYL || base == Mat.WOOD);
+            boolean glass = base == Mat.GLASS;
+            Mat layer = glass ? (hail ? Mat.ICE : null) : (outside || inside) ? mud : null;
+            if (layer == null) continue;
+            VertexConsumer vc = buffers.getBuffer(RenderType.entityTranslucent(layer.texture));
+            for (VehicleModels.Box b : group.getValue()) {
+                int f = b.flags();
+                if ((f & (VehicleModels.GLOW | VehicleModels.RGB | VehicleModels.SPIN | VehicleModels.ANCHOR | VehicleModels.SKIRT | VehicleModels.WHEEL)) != 0) continue;
+                pose.pushPose();
+                if (drop > 0) pose.translate(0, -drop, 0);
+                if ((f & VehicleModels.DOOR) != 0) swingDoor(pose, b, v, partialTick);
+                float pad = 0.006f;
+                box(pose.last(), vc, new VehicleModels.Box(b.x0() - pad, b.y0() - pad, b.z0() - pad, b.x1() + pad, b.y1() + pad, b.z1() + pad,
+                        b.rgb(), f, layer, b.insetFront(), b.insetBack(), b.insetSide(), b.dropFront()), layer, 0xFFFFFF, light);
+                pose.popPose();
+            }
+        }
     }
 
     /** A window box thickened a little on its thin side, so the shield sits just outside the glass. */
@@ -227,7 +290,13 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         pose.scale(s, -s, s);
         List<Component> lines = new ArrayList<>();
         boolean blink = v.tickCount / 6 % 2 == 0;
-        if (!v.screensWork()) {
+        boolean hung = v.isFrozen() && v.getReboot() == 0 && !v.failed(Part.COMPUTER) && !(v.spec().solar() && v.getBattery() <= 0);
+        List<Component> stuck = LAST_FRAME.get(v.getId());
+        if (hung && stuck != null) {
+            // Hung: the last picture stays stuck on the glass, one line torn sideways, with the hang notice over it.
+            lines.addAll(stuck);
+            lines.add(Component.translatable("dash.interceptors.not_responding").withStyle(ChatFormatting.WHITE, ChatFormatting.BOLD));
+        } else if (!v.screensWork()) {
             if (blink) lines.add(Component.translatable(v.getReboot() > 0 ? "dash.interceptors.rebooting" : "dash.interceptors.not_responding").withStyle(ChatFormatting.AQUA));
         } else {
             double mph = WindPhysics.toMph(Math.abs(v.getSpeed()));
@@ -244,15 +313,23 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
                         .withStyle(v.getGrime() >= InterceptorVehicle.GRIME_WARN ? ChatFormatting.GOLD : ChatFormatting.GRAY));
             }
             lines.add(Component.literal(String.format("ARMOR %d%%", Math.round(v.healthFraction() * 100))).withStyle(ChatFormatting.GREEN));
+            LAST_FRAME.put(v.getId(), List.copyOf(lines));
         }
-        int y = 0;
-        for (Component line : lines) {
+        int y = 0, torn = hung && stuck != null ? v.getId() % Math.max(1, stuck.size()) : -1;
+        for (int i = 0; i < lines.size(); i++) {
+            Component line = lines.get(i);
             Component shown = theme.military ? Component.literal(line.getString().toUpperCase()).withStyle(st -> st.withColor(theme.text & 0xFFFFFF)) : line;
-            font.drawInBatch(shown, 0, y, 0xFFFFFF, false, pose.last().pose(), buffers, Font.DisplayMode.POLYGON_OFFSET, 0, FULL_BRIGHT);
+            float x = i == torn ? 14 : 0;
+            if (hung && stuck != null && i == lines.size() - 1) font.drawInBatch(shown, 0, y, 0xFFFFFF, false, pose.last().pose(), buffers,
+                    Font.DisplayMode.POLYGON_OFFSET, 0xC0205080, FULL_BRIGHT);
+            else font.drawInBatch(shown, x, y, 0xFFFFFF, false, pose.last().pose(), buffers, Font.DisplayMode.POLYGON_OFFSET, 0, FULL_BRIGHT);
             y += 10;
         }
         pose.popPose();
     }
+
+    /** What each dash screen last showed, so a hung computer can keep showing it. */
+    private static final Map<Integer, List<Component>> LAST_FRAME = new ConcurrentHashMap<>();
 
     /** Gaming-rig colour cycle, offset per strip by its base colour so they don't all match. */
     private static int rainbow(float time, int seed) {

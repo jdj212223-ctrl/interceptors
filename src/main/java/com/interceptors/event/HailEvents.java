@@ -28,6 +28,6 @@ public final class HailEvents {
         if (!player.level().canSeeSky(player.blockPosition().above())) return;
         float hail = Storms.hailAt(player.level(), player.getEyePosition());
         if (hail < HURTS_ABOVE) return;
-        player.hurt(player.level().damageSources().source(HAIL), 1 + hail * 2);
+        if (player.hurt(player.level().damageSources().source(HAIL), 1 + hail * 2)) Injuries.hailHit(player, hail);
     }
 }

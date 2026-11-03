@@ -42,7 +42,7 @@ public final class ClientEvents {
     /** Hail closes the view right in: thick fog that grows with the hail. */
     @SubscribeEvent
     public static void fog(net.neoforged.neoforge.client.event.ViewportEvent.RenderFog e) {
-        float hail = StormAmbience.hailLevel();
+        float hail = StormAmbience.exposedHail();
         if (hail < 0.05f) return;
         float far = net.minecraft.util.Mth.lerp(Math.min(1, hail * 1.4f), e.getFarPlaneDistance(), 18);
         e.setFarPlaneDistance(Math.min(e.getFarPlaneDistance(), far));
@@ -66,7 +66,11 @@ public final class ClientEvents {
         while (Keys.PROBES.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.PROBES));
         while (Keys.LIGHTS.consumeClick()) if (inVehicle) PacketDistributor.sendToServer(new VehicleActionPayload(VehicleActionPayload.LIGHTS));
         while (Keys.BROADCAST.consumeClick()) BroadcastHud.enabled = !BroadcastHud.enabled;
+        while (Keys.PULL_HAIL.consumeClick()) {
+            if (mc.player != null && mc.level != null && InjuryState.lodged(mc.player, mc.level.getGameTime())) PacketDistributor.sendToServer(new com.interceptors.network.PullHailPayload());
+        }
         StormAmbience.tick(mc);
+        InjuryState.tick(mc);
         ObsLink.tick();
         while (Keys.DISPLAY.consumeClick()) {
             if (inVehicle && mc.player.getVehicle() instanceof InterceptorVehicle v) v.seatScreen(mc.player).open();

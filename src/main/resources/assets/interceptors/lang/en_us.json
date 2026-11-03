@@ -204,5 +204,22 @@
   "app.interceptors.station": "Weather Station",
   "app.interceptors.console": "Radar Console",
   "app.interceptors.radio": "FM Radio",
-  "app.interceptors.avionics": "Avionics"
+  "app.interceptors.avionics": "Avionics",
+  "key.interceptors.pull_hail": "Pull Out Hailstone (bad idea!)",
+  "injury.interceptors.head": "head",
+  "injury.interceptors.chest": "chest",
+  "injury.interceptors.right_arm": "right arm",
+  "injury.interceptors.left_arm": "left arm",
+  "injury.interceptors.right_leg": "right leg",
+  "injury.interceptors.left_leg": "left leg",
+  "message.interceptors.hail_lodged": "A hailstone is stuck in your %s! Leave it, it will melt.",
+  "message.interceptors.hail_pulled": "You pulled the hailstone out... now the wound is bleeding!",
+  "message.interceptors.hail_melted": "The hailstone melted out. Phew!",
+  "hud.interceptors.hail_lodged": "Hailstone stuck in your %s (melts in %ss)",
+  "hud.interceptors.hail_leave_it": "Leave it! Pulling it out [%s] makes it bleed",
+  "hud.interceptors.bleeding": "BLEEDING! Get under cover and wait it out",
+  "death.attack.interceptors.bleeding": "%1$s bled out after pulling out a hailstone",
+  "death.attack.interceptors.bleeding.player": "%1$s bled out after pulling out a hailstone while fighting %2$s",
+  "device.interceptors.hang_title": "StormOS (Not Responding)",
+  "device.interceptors.hang_body": "The anchor computer has stopped responding. Hold %s to restart it."
 }

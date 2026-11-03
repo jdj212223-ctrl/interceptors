@@ -261,9 +261,24 @@ def cut_texture():
     return img
 
 
+def wound_texture():
+    """A pixel-art hail wound on the front of each body part, in skin layout: a dark hole, red around it, drips."""
+    img = np.zeros((64, 64, 4), np.uint8)
+    dark, red, bright = [90, 4, 4, 240], [150, 10, 10, 235], [195, 24, 20, 220]
+    # Top-left of the spot on each part's front face: head, body, arm, leg (the left side reuses them mirrored).
+    for x, y, drip in ((9, 11, 1), (21, 23, 5), (44, 23, 5), (5, 23, 6)):
+        for dx, dy, c in ((0, 0, red), (1, 0, bright), (2, 0, red), (0, 1, red), (1, 1, dark), (2, 1, red),
+                          (0, 2, red), (1, 2, dark), (2, 2, red), (1, 3, red)):
+            img[y + dy, x + dx] = c
+        for k in range(drip):
+            img[y + 4 + k, x + 1 + (k > 2)] = red if k < drip - 1 else bright
+    return img
+
+
 def textures():
     write_png(np.full((16, 16, 4), 255, np.uint8), ASSETS, "textures", "entity", "white.png")
     write_png(cut_texture(), ASSETS, "textures", "entity", "cut.png")
+    write_png(wound_texture(), ASSETS, "textures", "entity", "wound.png")
     for name, (art, paint) in ICONS.items():
         write_png(ascii_icon(art, {**BASE, **paint}), ASSETS, "textures", "item", name + ".png")
         write_json({"parent": "minecraft:item/generated", "textures": {"layer0": f"{NS}:item/{name}"}},
@@ -716,12 +731,79 @@ def mat_screen():
     return img
 
 
+def mat_mud(seed, reach_px, thickness):
+    """See-through mud caked over the body: thick wet clay at the road, drying and splattered higher up."""
+    w, h = 4 * PPB, 3 * PPB
+    img = np.zeros((h, w, 4))
+    yy = np.arange(h)[:, None] / h
+    from_bottom = (1 - yy) * h
+    n = fbm(h, w, seed, 5, 10)
+    reach = np.clip(1 - from_bottom / reach_px, 0, 1)
+    mask = np.clip((n * 0.9 + reach * 1.25 - 1.0) * 3, 0, 1) * thickness
+    rng = np.random.default_rng(seed + 1)
+    for _ in range(int(w * thickness)):
+        # Flung droplets and drips running down from them.
+        cx, cy = rng.integers(0, w), int(h - rng.exponential(reach_px * 0.7))
+        if 0 <= cy < h:
+            r = int(rng.integers(1, 4))
+            mask[max(0, cy - r):cy + r, max(0, cx - r):cx + r] = np.maximum(mask[max(0, cy - r):cy + r, max(0, cx - r):cx + r], 0.85)
+            run = int(rng.integers(0, 10))
+            mask[cy:min(h, cy + r + run), cx:cx + 1] = np.maximum(mask[cy:min(h, cy + r + run), cx:cx + 1], 0.7)
+    tone = fbm(h, w, seed + 2, 4, 18)
+    wet = np.clip(reach * 1.3, 0, 1)
+    col = np.array([104, 84, 60]) * (0.7 + tone[..., None] * 0.5)
+    col = col * (1 - wet[..., None] * 0.35)  # wetter and darker low down
+    img[..., :3] = col
+    img[..., 3] = np.where(mask > 0.08, 120 + mask * 125, 0)
+    return np.clip(img, 0, 255)
+
+
+def mat_shards():
+    """What's left of a blown-out window: jagged glass teeth around the frame, an empty hole in the middle."""
+    h = w = 2 * PPB
+    img = np.zeros((h, w, 4))
+    rng = np.random.default_rng(47)
+    yy, xx = np.mgrid[0:h, 0:w]
+    edge = np.minimum.reduce([xx, w - 1 - xx, yy, h - 1 - yy]).astype(float)
+    # Teeth: depth into the hole wobbles along the frame, with a few long spikes.
+    along = np.where(np.minimum(xx, w - 1 - xx) < np.minimum(yy, h - 1 - yy), yy, xx)
+    teeth = np.zeros(max(h, w))
+    k = 0
+    while k < len(teeth):
+        width = int(rng.integers(3, 12))
+        depth = rng.choice([rng.uniform(2, 8), rng.uniform(10, 30)], p=[0.75, 0.25])
+        for i in range(width):
+            if k + i < len(teeth):
+                teeth[k + i] = depth * (1 - abs(i - width / 2) / (width / 2 + 0.5))
+        k += width
+    keep = edge < teeth[along]
+    img[keep, :3] = [150, 170, 185]
+    img[keep, 3] = 150
+    # Bright cracked edges on each tooth.
+    rim = keep & (edge > teeth[along] - 1.5)
+    img[rim] = [235, 240, 245, 230]
+    return np.clip(img, 0, 255)
+
+
+def mat_ice():
+    """Hailstones hitting the glass: little white ice chips and melt spots, see-through between them."""
+    h = w = 2 * PPB
+    img = np.zeros((h, w, 4))
+    rng = np.random.default_rng(48)
+    for _ in range(70):
+        cx, cy, r = rng.integers(1, w - 2), rng.integers(1, h - 2), int(rng.choice([1, 1, 2]))
+        img[cy - r + 1:cy + r, cx - r + 1:cx + r] = [235, 242, 250, 230]
+        img[cy + r - 1:cy + r + 2, cx:cx + 1] = [200, 215, 230, 140]  # a little melt run
+    return img
+
+
 MATERIALS = {
     "paint": mat_paint, "armor": lambda: mat_armor(200, False), "armor_dented": lambda: mat_armor(300, True),
     "steel": mat_steel, "plastic": mat_plastic, "glass": mat_glass, "tire": mat_tire, "rim": mat_rim,
     "headlight": mat_headlight, "taillight": mat_taillight, "lightbar": mat_lightbar, "solar": mat_solar,
     "wood": mat_wood, "fabric": mat_fabric, "vinyl": mat_vinyl, "grille": mat_grille, "dish": mat_dish,
     "screen": mat_screen, "glass_cracked": mat_glass_cracked, "paint_dented": mat_paint_dented,
+    "mud_light": lambda: mat_mud(500, 50, 0.6), "mud_heavy": lambda: mat_mud(501, 95, 1.0), "shards": mat_shards, "ice": mat_ice,
 }
 
 

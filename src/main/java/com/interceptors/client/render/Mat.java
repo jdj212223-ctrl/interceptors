@@ -30,6 +30,13 @@ public enum Mat {
     /** Worn variants swapped in as the vehicle takes damage. */
     GLASS_CRACKED(128, 128, false, false),
     PAINT_DENTED(256, 192, true, false),
+    /** What's left of a blown-out window: jagged teeth of glass around the frame. */
+    SHARDS(128, 128, false, true),
+    /** See-through mud caked over the body as grime builds up (and blown inside once the glass is gone). */
+    MUD_LIGHT(256, 192, false, false),
+    MUD_HEAVY(256, 192, false, false),
+    /** Hail chips stuck to the outside of the glass. */
+    ICE(128, 128, false, true),
     /** Plain white, for glowing strips and small coloured bits. */
     PLAIN(16, 16, true, true);
 

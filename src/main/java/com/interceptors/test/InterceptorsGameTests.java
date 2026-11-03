@@ -587,6 +587,61 @@ public class InterceptorsGameTests {
         helper.succeed();
     }
 
+    /** A hailstone left alone melts out: no bleeding, no extra harm. */
+    @GameTest(template = "pad")
+    public static void lodgedHailMeltsOutSafely(GameTestHelper helper) {
+        Player p = player(helper);
+        com.interceptors.event.Injuries.lodge(p, 1);
+        helper.assertTrue(com.interceptors.event.Injuries.lodgedPart(p) == 1, "the stone didn't stick");
+        float health = p.getHealth();
+        for (int i = 0; i < com.interceptors.event.Injuries.MELT_TICKS; i++) com.interceptors.event.Injuries.tick(p);
+        helper.assertTrue(com.interceptors.event.Injuries.lodgedPart(p) == -1, "the stone never melted");
+        helper.assertTrue(com.interceptors.event.Injuries.bleedTicks(p) == 0 && p.getHealth() == health, "melting out shouldn't hurt");
+        helper.succeed();
+    }
+
+    /** Pulling a stuck hailstone out is the big mistake: the wound bleeds for a while. */
+    @GameTest(template = "pad")
+    public static void pullingHailOutBleeds(GameTestHelper helper) {
+        Player p = player(helper);
+        com.interceptors.event.Injuries.lodge(p, 2);
+        com.interceptors.event.Injuries.pullOut(p);
+        helper.assertTrue(com.interceptors.event.Injuries.lodgedPart(p) == -1, "the stone is still in");
+        helper.assertTrue(com.interceptors.event.Injuries.bleedTicks(p) == com.interceptors.event.Injuries.BLEED_TICKS, "it isn't bleeding");
+        for (int i = 0; i < com.interceptors.event.Injuries.BLEED_TICKS; i++) {
+            p.invulnerableTime = 0;
+            com.interceptors.event.Injuries.tick(p);
+        }
+        helper.assertTrue(p.getHealth() <= p.getMaxHealth() - 8, "bleeding should hurt a lot, health is " + p.getHealth());
+        helper.assertTrue(com.interceptors.event.Injuries.bleedTicks(p) == 0, "the bleeding never stopped");
+        helper.succeed();
+    }
+
+    /** What the research says: Dom 3 gull-wing doors, a three-axle TIV 2, a Bell 407-size rotor, wind worse side-on. */
+    @GameTest(template = "pad")
+    public static void researchedBuildsMatchTheRealOnes(GameTestHelper helper) {
+        var dom3 = com.interceptors.client.render.VehicleModels.get(VehicleSpec.DOMINATOR_3.id());
+        helper.assertTrue(dom3.stream().anyMatch(b -> (b.flags() & com.interceptors.client.render.VehicleModels.DOOR) != 0 && b.x0() > 0)
+                && dom3.stream().anyMatch(b -> (b.flags() & com.interceptors.client.render.VehicleModels.DOOR) != 0 && b.x1() < 0), "Dom 3 needs gull-wing doors on both sides");
+        for (VehicleSpec spec : VehicleSpec.ALL) {
+            if (spec == VehicleSpec.DOMINATOR_3) continue;
+            helper.assertTrue(com.interceptors.client.render.VehicleModels.get(spec.id()).stream().noneMatch(b -> (b.flags() & com.interceptors.client.render.VehicleModels.DOOR) != 0),
+                    spec.id() + " shouldn't have gull-wing doors");
+        }
+        long tires = com.interceptors.client.render.VehicleModels.get(VehicleSpec.TIV_2.id()).stream()
+                .filter(b -> b.mat() == com.interceptors.client.render.Mat.TIRE && (b.flags() & com.interceptors.client.render.VehicleModels.WHEEL) != 0).count();
+        helper.assertTrue(tires == 6, "TIV 2 rides on three axles, found " + tires + " tires");
+        float rotor = 0;
+        for (var b : com.interceptors.client.render.VehicleModels.get(VehicleSpec.STORM_CHOPPER.id())) {
+            if ((b.flags() & com.interceptors.client.render.VehicleModels.SPIN) != 0) rotor = Math.max(rotor, Math.max(b.x1() - b.x0(), b.z1() - b.z0()));
+        }
+        helper.assertTrue(rotor > 10 && rotor < 11.5, "a Bell 407 rotor is about 10.7 m across, got " + rotor);
+        net.minecraft.world.phys.Vec3 wind = new net.minecraft.world.phys.Vec3(0, 0, 100);
+        double headOn = com.interceptors.vehicle.WindPhysics.sideFactor(wind, 0), sideOn = com.interceptors.vehicle.WindPhysics.sideFactor(wind, 90);
+        helper.assertTrue(sideOn > headOn * 1.4, "side-on wind should push much harder: " + headOn + " vs " + sideOn);
+        helper.succeed();
+    }
+
     /** Not every car has the same dash: each vehicle family gets its own look. */
     @GameTest(template = "pad")
     public static void everyVehicleHasItsOwnDash(GameTestHelper helper) {

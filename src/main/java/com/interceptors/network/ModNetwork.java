@@ -23,8 +23,12 @@ public final class ModNetwork {
         r.playToServer(VehicleActionPayload.TYPE, VehicleActionPayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof ServerPlayer sp && sp.getVehicle() instanceof InterceptorVehicle v) handle(sp, v, p.action());
         }));
-        r.playToClient(CutPayload.TYPE, CutPayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> com.interceptors.client.render.CutLayer.cut(p.entityId(), p.ticks())));
+        r.playToClient(CutPayload.TYPE, CutPayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> com.interceptors.client.render.CutLayer.cut(p.entityId(), p.ticks(), true)));
         r.playToClient(GlassBurstPayload.TYPE, GlassBurstPayload.CODEC, (p, ctx) -> ctx.enqueueWork(com.interceptors.client.gui.VehicleHud::glassBurst));
+        r.playToClient(InjuryPayload.TYPE, InjuryPayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> com.interceptors.client.InjuryState.update(p)));
+        r.playToServer(PullHailPayload.TYPE, PullHailPayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> {
+            if (ctx.player() instanceof ServerPlayer sp) com.interceptors.event.Injuries.pullOut(sp);
+        }));
         r.playToServer(DeviceUsePayload.TYPE, DeviceUsePayload.CODEC, (p, ctx) -> ctx.enqueueWork(() -> {
             if (ctx.player() instanceof ServerPlayer sp) drain(sp, p.device());
         }));

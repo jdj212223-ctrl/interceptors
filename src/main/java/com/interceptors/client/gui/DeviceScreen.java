@@ -142,7 +142,8 @@ public class DeviceScreen extends Screen {
             drawTaskbar(g, mouseX, mouseY);
             return;
         }
-        if (device == Device.CAR_DISPLAY && v != null && !v.screensWork()) {
+        boolean hung = hung(v);
+        if (device == Device.CAR_DISPLAY && v != null && !v.screensWork() && !hung) {
             drawDead(g, v);
             return;
         }
@@ -160,6 +161,44 @@ public class DeviceScreen extends Screen {
         if (age < FADE_TICKS) g.fill(appX(), appY(), appX() + appW(), appY() + appH(), (int) (230 * (1 - age / FADE_TICKS)) << 24 | 0x0A0D12);
         g.disableScissor();
         drawTaskbar(g, mouseX, mouseY);
+        if (hung) drawHang(g, v);
+    }
+
+    /** The car computer has hung (not rebooting, not dead): the picture sticks and nothing answers. */
+    private boolean hung(@Nullable InterceptorVehicle v) {
+        return device == Device.CAR_DISPLAY && v != null && v.isFrozen() && v.getReboot() == 0
+                && !v.failed(com.interceptors.vehicle.Part.COMPUTER) && !(v.spec().solar() && v.getBattery() <= 0);
+    }
+
+    /**
+     * A hung screen, like a real one: washed out, torn bands where the picture stopped mid-redraw, a frozen
+     * spinner, and a "not responding" box on top. Clicks do nothing until it's rebooted.
+     */
+    private void drawHang(GuiGraphics g, InterceptorVehicle v) {
+        g.fill(sx, sy, sx + sw, sy + sh, 0x70E8ECF0);
+        // Torn bands: the same few every time this freeze is looked at, flickering only now and then.
+        java.util.Random tear = new java.util.Random(v.getId() * 31L + (minecraft.level.getGameTime() / 37));
+        for (int i = 0; i < 5; i++) {
+            int y = sy + tear.nextInt(Math.max(1, sh - 12)), hgt = 2 + tear.nextInt(9), shift = tear.nextInt(30) - 15;
+            g.fill(sx, y, sx + sw, y + hgt, 0x90000000 | (tear.nextBoolean() ? 0x30E0FF : 0xC8CCD0));
+            g.fill(Math.max(sx, sx + shift), y + hgt / 2, Math.min(sx + sw, sx + sw + shift), y + hgt / 2 + 1, 0xC0FFFFFF);
+        }
+        int bw = Math.min(sw - 20, 220), bh = 70, bx = sx + sw / 2 - bw / 2, by = sy + sh / 2 - bh / 2;
+        g.fill(bx + 3, by + 3, bx + bw + 3, by + bh + 3, 0x80000000);
+        g.fill(bx, by, bx + bw, by + bh, 0xFFF0F0F0);
+        g.fill(bx, by, bx + bw, by + 14, 0xFF3A6EA5);
+        g.drawString(font, Component.translatable("device.interceptors.hang_title"), bx + 5, by + 3, 0xFFFFFF, false);
+        int y = by + 20;
+        for (var line : font.split(Component.translatable("device.interceptors.hang_body", Keys.ANCHORS.getTranslatedKeyMessage()), bw - 34)) {
+            g.drawString(font, line, bx + 28, y, 0x202020, false);
+            y += 10;
+        }
+        // The stuck spinner: one frame, never moving.
+        for (int k = 0; k < 8; k++) {
+            double a = k * Math.PI / 4;
+            int px = bx + 14 + (int) Math.round(Math.cos(a) * 6), py = by + 34 + (int) Math.round(Math.sin(a) * 6);
+            g.fill(px - 1, py - 1, px + 1, py + 1, k < 3 ? 0xFF3A6EA5 : 0xFFB0B4B8);
+        }
     }
 
     private void drawFrame(GuiGraphics g) {
@@ -519,6 +558,7 @@ public class DeviceScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (hung(vehicle())) return true;
         int y = sy + sh - TASKBAR;
         if (mouseY >= y && mouseY < sy + sh && mouseX >= sx && mouseX < sx + 52) {
             switchTo(HOME);
@@ -565,6 +605,7 @@ public class DeviceScreen extends Screen {
 
     @Override
     public boolean keyPressed(int key, int scancode, int modifiers) {
+        if (key != GLFW.GLFW_KEY_ESCAPE && hung(vehicle())) return true;
         App a = app();
         if (key != GLFW.GLFW_KEY_ESCAPE && a != null && a.keyPressed(this, key, scancode, modifiers)) return true;
         if (key == GLFW.GLFW_KEY_H) {
