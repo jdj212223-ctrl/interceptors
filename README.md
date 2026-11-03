@@ -107,6 +107,13 @@ with iron ingots. Turn failures down or off in `interceptors-server.toml` (`fail
 - **Gore setting:** all blood is blocky Minecraft pixels. Turn it off completely with `gore.blood = false` in
   `config/interceptors-client.toml`: no cuts, wounds, drips or red flash (you still get hurt).
 
+## Languages (2.2)
+
+Interceptors speaks English, Czech (`cs_cz`), German (`de_de`), Austrian German (`de_at`) and Croatian (`hr_hr`).
+Pick the language in Minecraft's Language menu. Everything is translated: items, vehicles, keys, chat messages, the HUD,
+StormOS apps, the dash display, the stream overlay and the settings. The vehicles keep their real names (Dominator, TIV,
+Doppler on Wheels). The settings now have a **Config** button on the Mods screen too.
+
 ## Dominator 3 gear
 
 - **Airbag suspension:** as the anchors go down, the whole shell (riders and all) drops toward the road.

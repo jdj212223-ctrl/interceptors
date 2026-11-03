@@ -668,4 +668,34 @@ public class InterceptorsGameTests {
         Storms.around(level, centre(helper));
         helper.succeed();
     }
+
+    /** Czech, German, Austrian German and Croatian each translate every English line, with the same blanks to fill. */
+    @GameTest(template = "pad")
+    public static void everyLanguageHasEveryLine(GameTestHelper helper) {
+        java.util.Map<String, String> english = lang("en_us");
+        java.util.regex.Pattern blank = java.util.regex.Pattern.compile("%(\\d+\\$)?[-+0-9.]*[sdf%]");
+        for (String code : new String[]{"cs_cz", "de_de", "de_at", "hr_hr"}) {
+            java.util.Map<String, String> other = lang(code);
+            for (var e : english.entrySet()) {
+                String line = other.get(e.getKey());
+                helper.assertTrue(line != null, code + " is missing " + e.getKey());
+                helper.assertTrue(blank.matcher(line).results().map(m -> m.group()).sorted().toList()
+                        .equals(blank.matcher(e.getValue()).results().map(m -> m.group()).sorted().toList()), code + " " + e.getKey() + " has different blanks");
+            }
+            helper.assertTrue(english.keySet().containsAll(other.keySet()), code + " has lines English doesn't");
+        }
+        helper.succeed();
+    }
+
+    private static java.util.Map<String, String> lang(String code) {
+        try (var in = InterceptorsGameTests.class.getResourceAsStream("/assets/interceptors/lang/" + code + ".json")) {
+            if (in == null) throw new IllegalStateException("no " + code + ".json");
+            var json = com.google.gson.JsonParser.parseReader(new java.io.InputStreamReader(in, java.nio.charset.StandardCharsets.UTF_8)).getAsJsonObject();
+            java.util.Map<String, String> out = new java.util.HashMap<>();
+            for (var e : json.entrySet()) out.put(e.getKey(), e.getValue().getAsString());
+            return out;
+        } catch (java.io.IOException e) {
+            throw new IllegalStateException(e);
+        }
+    }
 }

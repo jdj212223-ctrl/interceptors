@@ -63,9 +63,9 @@ public class InterceptApp implements App {
         }
         line += 11;
         g.drawString(font, Component.translatable("app.interceptors.intercept.distance", distance(target.distance()),
-                Storms.compassName(target.bearing()), (int) target.bearing()), tx, line, 0xFFFFFF, false);
+                Storms.compassLabel(target.bearing()), (int) target.bearing()), tx, line, 0xFFFFFF, false);
         line += 11;
-        String moving = Double.isNaN(target.heading()) ? "--" : Storms.compassName(target.heading()) + ", " + (int) target.speed() + " mph";
+        String moving = Double.isNaN(target.heading()) ? "--" : Storms.compassLabel(target.heading()) + ", " + (int) target.speed() + " mph";
         g.drawString(font, Component.translatable("app.interceptors.intercept.moving", moving), tx, line, 0xC0C8D0, false);
         line += 11;
         double closing = target.closingMph(here);
@@ -112,6 +112,7 @@ public class InterceptApp implements App {
     }
 
     static String pretty(String type) {
-        return type.isEmpty() ? type : Character.toUpperCase(type.charAt(0)) + type.substring(1).replace('_', ' ');
+        String english = type.isEmpty() ? type : Character.toUpperCase(type.charAt(0)) + type.substring(1).replace('_', ' ');
+        return Component.translatableWithFallback("storm.interceptors." + type, english).getString();
     }
 }

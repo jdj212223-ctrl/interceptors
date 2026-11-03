@@ -5,6 +5,7 @@ import com.interceptors.compat.Storms;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.client.resources.sounds.SimpleSoundInstance;
 import net.minecraft.sounds.SoundEvents;
 import org.lwjgl.glfw.GLFW;
@@ -15,8 +16,9 @@ import org.lwjgl.glfw.GLFW;
  */
 public class RadioApp implements App {
     private static final String[][] STATIONS = {
-            {"88.1", "KSTM Weather Radio", "Forecast for the plains..."}, {"94.7", "Country 94.7", "Dust on the Dashboard"},
-            {"101.5", "Classic Rock", "Ridin' the Storm Out"}, {"105.3", "Chase Talk Live", "callers: 'where's the hook?'"}};
+            // Frequency, station name, then the lang key for what's on.
+            {"88.1", "KSTM Weather Radio", "app.interceptors.radio.now.0"}, {"94.7", "Country 94.7", "app.interceptors.radio.now.1"},
+            {"101.5", "Classic Rock", "app.interceptors.radio.now.2"}, {"105.3", "Chase Talk Live", "app.interceptors.radio.now.3"}};
     private static int station;
 
     @Override
@@ -42,7 +44,7 @@ public class RadioApp implements App {
         g.drawString(font, s[0], 0, 0, 0xFFE8ECF0, false);
         g.pose().popPose();
         g.drawString(font, s[1], x + 8, y + 36, 0xFFE8ECF0, false);
-        g.drawString(font, "♪ " + s[2], x + 8, y + 48, 0xFF9AA4B4, false);
+        g.drawString(font, "♪ " + Component.translatable(s[2]).getString(), x + 8, y + 48, 0xFF9AA4B4, false);
         for (int i = 0; i < STATIONS.length; i++) {
             int bx = x + 8 + i * ((w - 16) / STATIONS.length), bw = (w - 16) / STATIONS.length - 4;
             g.fill(bx, y + h - 26, bx + bw, y + h - 8, i == station ? 0xFFDDE4EE : 0xFF2A303C);
@@ -50,7 +52,7 @@ public class RadioApp implements App {
         }
         Storms.StormInfo t = Storms.nearestTornado(mc.level, screen.here());
         if (t != null && t.distance() < 5000 && mc.level.getGameTime() / 10 % 2 == 0) {
-            String alert = "EMERGENCY ALERT: TORNADO WARNING. TAKE SHELTER NOW.";
+            String alert = Component.translatable("app.interceptors.radio.alert").getString();
             g.fill(x, y + 60, x + w, y + 74, 0xFFC01818);
             g.drawString(font, alert, x + w / 2 - font.width(alert) / 2, y + 63, 0xFFFFFFFF, false);
         }

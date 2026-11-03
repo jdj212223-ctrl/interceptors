@@ -54,8 +54,8 @@ public final class VehicleHud {
                 g.drawString(font, Component.translatable("hud.interceptors.no_tornado"), x + 5, y + 39, 0x9AA0A6);
             } else {
                 g.drawString(font, Component.translatable("hud.interceptors.tornado", t.efLabel(), t.windspeed(), (int) t.distance(),
-                        Storms.compassName(t.bearing())), x + 5, y + 39, 0xFF5050);
-                String motion = Double.isNaN(t.heading()) ? "--" : Storms.compassName(t.heading()) + " " + (int) t.speed() + " mph";
+                        Storms.compassLabel(t.bearing())), x + 5, y + 39, 0xFF5050);
+                String motion = Double.isNaN(t.heading()) ? "--" : Storms.compassLabel(t.heading()) + " " + (int) t.speed() + " mph";
                 g.drawString(font, Component.translatable("hud.interceptors.motion", motion, (int) t.width()), x + 5, y + 50, 0xC0C8D0);
             }
             if (v.spec().solar()) {

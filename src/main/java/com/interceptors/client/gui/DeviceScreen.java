@@ -510,7 +510,7 @@ public class DeviceScreen extends Screen {
         g.fill(sx + 6, y + 8, sx + 13, y + 13, 0xFFFFFFFF);
         Draw.line(g, sx + 5, y + 8, sx + 9.5f, y + 4, 1, 0xFFFFFFFF);
         Draw.line(g, sx + 14, y + 8, sx + 9.5f, y + 4, 1, 0xFFFFFFFF);
-        g.drawString(font, "Home", sx + 17, y + 4, 0xFFFFFF, false);
+        g.drawString(font, Component.translatable("device.interceptors.home"), sx + 17, y + 4, 0xFFFFFF, false);
         App a = app();
         Component open = a == null ? title : Component.translatable("app.interceptors." + a.id());
         g.drawString(font, t == null ? open : Component.literal(t.format(open.getString())), sx + 56, y + 4, t == null ? 0xC0C8D0 : t.text, false);

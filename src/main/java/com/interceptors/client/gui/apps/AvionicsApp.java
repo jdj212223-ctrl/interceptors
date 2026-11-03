@@ -9,6 +9,7 @@ import com.interceptors.vehicle.WindPhysics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.levelgen.Heightmap;
 
 /**
@@ -63,12 +64,13 @@ public class AvionicsApp implements App {
         tape(g, font, x + w - tapeW - 6, y + 18, tapeW, h - 24, "ALT m", alt + "", 0xFF30FF80);
         // Heading tape.
         g.fill(x + tapeW + 12, y + 2, x + w - tapeW - 12, y + 14, 0xFF101418);
-        String hdg = String.format("HDG %03d° %s", Math.round(heading), Storms.compassName(heading));
+        String hdg = String.format("HDG %03d° %s", Math.round(heading), Storms.compassLabel(heading));
         g.drawString(font, hdg, (int) cx - font.width(hdg) / 2, y + 4, 0xFFFFFFFF, false);
         String vs = String.format("VS %+.1f m/s", climb);
         g.drawString(font, vs, (int) cx - font.width(vs) / 2, (int) cy + r + 4, climb < -4 ? 0xFFFF5050 : 0xFF30FF80, false);
         double wind = v != null ? v.lastWind().horizontalDistance() : 0;
-        if (wind > 70) g.drawString(font, "TURBULENCE", (int) cx - font.width("TURBULENCE") / 2, (int) cy - r - 12, 0xFFFF5050, false);
+        String turbulence = Component.translatable("app.interceptors.avionics.turbulence").getString();
+        if (wind > 70) g.drawString(font, turbulence, (int) cx - font.width(turbulence) / 2, (int) cy - r - 12, 0xFFFF5050, false);
     }
 
     private static void tape(GuiGraphics g, Font font, int x, int y, int w, int h, String label, String value, int color) {

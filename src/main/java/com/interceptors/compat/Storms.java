@@ -127,4 +127,10 @@ public final class Storms {
         String[] names = {"N", "NE", "E", "SE", "S", "SW", "W", "NW"};
         return names[Math.floorMod((int) Math.round(deg / 45.0), 8)];
     }
+
+    /** {@link #compassName} in the player's language (S, SV, V... in Czech). */
+    public static String compassLabel(double deg) {
+        String code = compassName(deg);
+        return net.minecraft.network.chat.Component.translatableWithFallback("compass.interceptors." + code.toLowerCase(java.util.Locale.ROOT), code).getString();
+    }
 }

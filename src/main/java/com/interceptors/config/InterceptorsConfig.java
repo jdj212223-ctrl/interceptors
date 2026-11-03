@@ -12,17 +12,17 @@ public final class InterceptorsConfig {
 
     static {
         ModConfigSpec.Builder b = new ModConfigSpec.Builder();
-        b.push("failures");
+        b.translation("interceptors.configuration.failures").push("failures");
         FAILURES = b.comment("Parts (hydraulics, tires, engine, windows, anchor computer) wear out and fail in storms.")
-                .define("enabled", true);
+                .translation("interceptors.configuration.failures.enabled").define("enabled", true);
         WEAR_RATE = b.comment("How fast parts wear in strong wind and hail. 0.5 = half as fast, 2 = twice as fast.")
-                .defineInRange("wearRate", 1.0, 0.0, 5.0);
+                .translation("interceptors.configuration.failures.wearRate").defineInRange("wearRate", 1.0, 0.0, 5.0);
         FREEZE_RATE = b.comment("How often the anchor computer freezes in a storm. 0 turns freezing off.")
-                .defineInRange("freezeRate", 1.0, 0.0, 5.0);
+                .translation("interceptors.configuration.failures.freezeRate").defineInRange("freezeRate", 1.0, 0.0, 5.0);
         b.pop();
-        b.push("injuries");
+        b.translation("interceptors.configuration.injuries").push("injuries");
         HAIL_INJURIES = b.comment("Giant hail can lodge in a player caught outside. It melts out by itself; pulling it out early makes it bleed.")
-                .define("hailInjuries", true);
+                .translation("interceptors.configuration.injuries.hailInjuries").define("hailInjuries", true);
         b.pop();
         SPEC = b.build();
     }

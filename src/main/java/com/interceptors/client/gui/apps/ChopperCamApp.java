@@ -89,13 +89,13 @@ public class ChopperCamApp implements App {
         boolean blink = time / 10 % 2 == 0;
         g.drawString(font, Component.translatable("app.interceptors.chopper.live"), x + 6, y + 3, blink ? 0xFF3030 : 0xFFFFFF, true);
         int ground = mc.level.getHeight(Heightmap.Types.MOTION_BLOCKING, (int) at.x, (int) at.z);
-        String tele = String.format("ALT %d m  |  %d mph  |  %s  |  %d m from you", Math.max(0, (int) (at.y - ground)),
+        String tele = net.minecraft.client.resources.language.I18n.get("app.interceptors.chopper.telemetry", Math.max(0, (int) (at.y - ground)),
                 Math.round(WindPhysics.toMph(c.getDeltaMovement().horizontalDistance())),
-                Storms.compassName(((c.getYRot() + 180) % 360 + 360) % 360), (int) at.distanceTo(you));
+                Storms.compassLabel(((c.getYRot() + 180) % 360 + 360) % 360), (int) at.distanceTo(you));
         g.drawString(font, tele, x + 6, y + h - 10, 0xE0E0E0, false);
         Storms.StormInfo t = Storms.nearestTornado(mc.level, at);
         if (t != null) {
-            String feed = String.format("%s TORNADO %d m %s of the chopper", t.efLabel(), (int) t.distance(), Storms.compassName(t.bearing()));
+            String feed = net.minecraft.client.resources.language.I18n.get("app.interceptors.chopper.feed", t.efLabel(), (int) t.distance(), Storms.compassLabel(t.bearing()));
             g.drawString(font, feed, x + w - font.width(feed) - 6, y + 3, 0xFF8080, false);
         }
     }

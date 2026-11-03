@@ -8,6 +8,7 @@ import com.interceptors.vehicle.WindPhysics;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
 import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.network.chat.Component;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.phys.Vec3;
 
@@ -49,7 +50,7 @@ public class WeatherStationApp implements App {
         Font font = mc.font;
         g.fill(x, y, x + w, y + h, 0xFF101216);
         g.fill(x, y, x + w, y + 12, 0xFFFF8C1A);
-        g.drawString(font, "DOMINATOR WX STATION", x + 4, y + 2, 0xFF101216, false);
+        g.drawString(font, Component.translatable("app.interceptors.station.title"), x + 4, y + 2, 0xFF101216, false);
 
         Vec3 at = mast(screen);
         Vec3 wind = Storms.windAt(mc.level, at);
@@ -72,15 +73,15 @@ public class WeatherStationApp implements App {
 
         // Readout tiles.
         String[][] tiles = {
-                {"WIND", Math.round(mph) + " mph"}, {"GUST", Math.round(gust) + " mph"},
-                {"FROM", Storms.compassName(from) + " " + Math.round(from) + "°"}, {"TEMP", Math.round(tempF) + "°F"},
-                {"DEW PT", Math.round(dewF) + "°F"}, {"PRESSURE", String.format("%.2f inHg", pressure)},
-                {"RAIN", Math.round(rain * 100) + "%"}, {"HAIL", hail > 0.05f ? Math.round(hail * 100) + "%" : "none"}};
+                {"wind", Math.round(mph) + " mph"}, {"gust", Math.round(gust) + " mph"},
+                {"from", Storms.compassLabel(from) + " " + Math.round(from) + "°"}, {"temp", Math.round(tempF) + "°F"},
+                {"dew", Math.round(dewF) + "°F"}, {"pressure", String.format("%.2f inHg", pressure)},
+                {"rain", Math.round(rain * 100) + "%"}, {"hail", hail > 0.05f ? Math.round(hail * 100) + "%" : Component.translatable("app.interceptors.station.none").getString()}};
         int cols = 4, tw = (w - 12) / cols, th = 24, ty = y + 16;
         for (int i = 0; i < tiles.length; i++) {
             int tx = x + 4 + (i % cols) * tw, yy = ty + (i / cols) * (th + 3);
             g.fill(tx, yy, tx + tw - 3, yy + th, 0xFF1C2026);
-            g.drawString(font, tiles[i][0], tx + 3, yy + 2, 0xFFFF8C1A, false);
+            g.drawString(font, Component.translatable("app.interceptors.station." + tiles[i][0]), tx + 3, yy + 2, 0xFFFF8C1A, false);
             int color = i < 2 && mph > 65 ? 0xFFFF5050 : 0xFFF0F0F0;
             g.drawString(font, tiles[i][1], tx + 3, yy + 13, color, false);
         }
@@ -99,6 +100,6 @@ public class WeatherStationApp implements App {
             Draw.line(g, x0, gy + gh - history[i - 1] / top * gh, x1, gy + gh - history[i] / top * gh, 1, 0xFFFF8C1A);
         }
         int ef = WindPhysics.efRating(gust);
-        g.drawString(font, "1 MIN WIND" + (ef < 0 ? "" : "  PEAK EF" + ef), gx + 3, gy + 2, 0xFF808890, false);
+        g.drawString(font, Component.translatable("app.interceptors.station.graph").getString() + (ef < 0 ? "" : "  " + Component.translatable("app.interceptors.station.peak", "EF" + ef).getString()), gx + 3, gy + 2, 0xFF808890, false);
     }
 }

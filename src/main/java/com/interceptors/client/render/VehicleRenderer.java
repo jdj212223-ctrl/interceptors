@@ -301,18 +301,18 @@ public class VehicleRenderer extends EntityRenderer<InterceptorVehicle> {
         } else {
             double mph = WindPhysics.toMph(Math.abs(v.getSpeed()));
             double wind = v.lastWind().horizontalDistance();
-            lines.add(Component.literal(String.format("%d MPH   WIND %d", Math.round(mph), Math.round(wind))).withStyle(ChatFormatting.WHITE));
+            lines.add(Component.translatable("dash.interceptors.speed", Math.round(mph), Math.round(wind)).withStyle(ChatFormatting.WHITE));
             Storms.StormInfo t = Storms.nearestTornado(v.level(), v.position());
             lines.add(t == null ? Component.translatable("dash.interceptors.no_tornado").withStyle(ChatFormatting.GRAY)
-                    : Component.literal(String.format("%s %dM %s", t.efLabel(), Math.round(t.distance()), Storms.compassName(t.bearing()))).withStyle(ChatFormatting.RED));
+                    : Component.translatable("dash.interceptors.tornado", t.efLabel(), Math.round(t.distance()), Storms.compassLabel(t.bearing())).withStyle(ChatFormatting.RED));
             AnchorStatus status = v.anchorStatus();
             if (status != AnchorStatus.NONE) {
                 lines.add(Component.translatable("dash.interceptors.anchor", Component.translatable(status.key()))
                         .withStyle(st -> st.withColor(status.color())));
-                lines.add(Component.literal(String.format("HYD %d%%  MUD %d%%", v.condition(Part.HYDRAULICS), Math.round(v.getGrime())))
+                lines.add(Component.translatable("dash.interceptors.hydraulics", v.condition(Part.HYDRAULICS), Math.round(v.getGrime()))
                         .withStyle(v.getGrime() >= InterceptorVehicle.GRIME_WARN ? ChatFormatting.GOLD : ChatFormatting.GRAY));
             }
-            lines.add(Component.literal(String.format("ARMOR %d%%", Math.round(v.healthFraction() * 100))).withStyle(ChatFormatting.GREEN));
+            lines.add(Component.translatable("dash.interceptors.armor", Math.round(v.healthFraction() * 100)).withStyle(ChatFormatting.GREEN));
             LAST_FRAME.put(v.getId(), List.copyOf(lines));
         }
         int y = 0, torn = hung && stuck != null ? v.getId() % Math.max(1, stuck.size()) : -1;

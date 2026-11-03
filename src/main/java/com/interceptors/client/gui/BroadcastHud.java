@@ -33,10 +33,8 @@ public final class BroadcastHud {
     private static final double WARNING_RANGE = 3000;
 
     private static final String[] CHATTERS = {"StormFan42", "chaser_mom", "TornadoTim", "wx_nerd", "PlainsKid", "HailYeah", "DopplerDan", "funnelcloud9"};
-    private static final String[] CALM_CHAT = {"is it going to drop?", "nice structure!", "hi from Kansas", "waiting for the tornado...",
-            "what radar is that?", "love the van setup", "stay safe out there!", "LETS GOOO", "first time catching a stream live"};
-    private static final String[] TORNADO_CHAT = {"TORNADO ON THE GROUND!!", "DROP THE ANCHORS", "is that a wedge?!", "%s!!!", "you're so close",
-            "GET IN POSITION", "STAY SAFE", "the rotation is insane", "intercept it!!"};
+    /** Viewer chat lines are lang keys broadcast.interceptors.chat.calm.0..8 and .tornado.0..8. */
+    private static final int CALM_CHAT = 9, TORNADO_CHAT = 9;
 
     private BroadcastHud() {}
 
@@ -69,7 +67,7 @@ public final class BroadcastHud {
 
         // Watch / warning box with the "counties" (biomes) under it, bottom-right of the video.
         if (watch) {
-            String title = warning ? "TORNADO WARNING" : "TORNADO WATCH";
+            String title = tr(warning ? "broadcast.interceptors.warning" : "broadcast.interceptors.watch");
             int bw = Math.max(120, (int) (font.width(title) * 1.5f) + 12), bx = w - col - bw - 8;
             List<String> counties = counties(level, here, t);
             int listH = counties.size() * 9 + 4, by = vy - 22 - listH;
@@ -90,7 +88,7 @@ public final class BroadcastHud {
     private static void topBar(GuiGraphics g, Font font, String player, int w) {
         g.fill(0, 0, w, TOP, ORANGE);
         g.fill(0, TOP - 2, w, TOP, BLACK);
-        String[] boxes = {"@" + player.toUpperCase(), "STORMCHAT DISCORD", "NEW MERCH!"};
+        String[] boxes = {"@" + player.toUpperCase(), tr("broadcast.interceptors.discord"), tr("broadcast.interceptors.merch")};
         int x = 6;
         for (String b : boxes) {
             int bw = font.width(b) + 12;
@@ -101,8 +99,9 @@ public final class BroadcastHud {
         }
         // With the OBS link on, the tag tells the truth: LIVE while streaming, REC while recording, else OFFLINE.
         boolean obs = com.interceptors.client.ObsLink.connected();
-        String live = !obs || com.interceptors.client.ObsLink.streaming() ? "LIVE" : com.interceptors.client.ObsLink.recording() ? "REC" : "OFFLINE";
-        int tag = live.equals("OFFLINE") ? 0xFF505050 : RED;
+        boolean offline = obs && !com.interceptors.client.ObsLink.streaming() && !com.interceptors.client.ObsLink.recording();
+        String live = tr(!obs || com.interceptors.client.ObsLink.streaming() ? "broadcast.interceptors.live" : offline ? "broadcast.interceptors.offline" : "broadcast.interceptors.rec");
+        int tag = offline ? 0xFF505050 : RED;
         int lx = w - font.width(live) - 18;
         g.fill(lx - 4, 2, w - 4, TOP - 3, tag);
         g.drawString(font, live, lx + 6, 4, WHITE, false);
@@ -119,13 +118,14 @@ public final class BroadcastHud {
     }
 
     private static String crewName(Minecraft mc) {
-        if (!(mc.player.getVehicle() instanceof InterceptorVehicle v)) return "TEAM CHASER";
-        String id = v.spec().id();
-        if (id.startsWith("dominator")) return "TEAM DOMINATOR";
-        if (id.startsWith("tiv")) return "TEAM TIV";
-        if (id.equals("doppler_on_wheels")) return "TEAM DOW";
-        if (id.equals("gaming_van")) return "TEAM VAN";
-        return "TEAM RENTAL";
+        String team;
+        if (!(mc.player.getVehicle() instanceof InterceptorVehicle v)) team = "chaser";
+        else if (v.spec().id().startsWith("dominator")) team = "dominator";
+        else if (v.spec().id().startsWith("tiv")) team = "tiv";
+        else if (v.spec().id().equals("doppler_on_wheels")) team = "dow";
+        else if (v.spec().id().equals("gaming_van")) team = "van";
+        else team = "rental";
+        return tr("broadcast.interceptors.team." + team);
     }
 
     /** Biomes standing in for counties: where you are, where the tornado is, and in between. */
@@ -137,13 +137,13 @@ public final class BroadcastHud {
             names.add(biome(level, t.position()));
         }
         List<String> out = new ArrayList<>();
-        for (String n : names) out.add(n.toUpperCase() + " COUNTY");
+        for (String n : names) out.add(tr("broadcast.interceptors.county", upper(n)));
         return out;
     }
 
     private static String biome(Level level, Vec3 pos) {
         return level.getBiome(BlockPos.containing(pos.x, 64, pos.z)).unwrapKey()
-                .map(k -> Component.translatable(k.location().toLanguageKey("biome")).getString()).orElse("UNKNOWN");
+                .map(k -> Component.translatable(k.location().toLanguageKey("biome")).getString()).orElse(tr("broadcast.interceptors.unknown"));
     }
 
     private static void rightColumn(GuiGraphics g, Font font, Level level, Vec3 here, List<Storms.StormInfo> storms, Storms.StormInfo t,
@@ -173,26 +173,27 @@ public final class BroadcastHud {
         g.disableScissor();
         Draw.ring(g, cx, cy, size / 2f - 1, 0x60FFFFFF);
         Draw.dot(g, cx, cy, 3, 0xFF30E0FF);
-        g.drawString(font, "VELOCITY  3 KM", rx + 3, ry + 3, 0xFFB0FFB0, false);
+        g.drawString(font, tr("broadcast.interceptors.velocity"), rx + 3, ry + 3, 0xFFB0FFB0, false);
         y = ry + size + 6;
 
         // Follower counter: grows over the stream, faster when there's a tornado on the ground.
         long followers = 48_210 + time / 40 + (t != null ? time / 8 % 5_000 : 0);
-        g.drawString(font, "FOLLOWERS", x + 6, y, 0xFFA0A0A0, false);
+        g.drawString(font, tr("broadcast.interceptors.followers"), x + 6, y, 0xFFA0A0A0, false);
         bigText(g, font, String.format("%,d", followers), x + col / 2, y + 10, 2f);
         y += 32;
 
         // Viewer chat, a new line every three seconds, excited when there's a tornado.
         g.fill(x + 4, y, x + col - 4, bottom - 4, 0xFF141414);
-        g.drawString(font, "LIVE CHAT", x + 8, y + 3, 0xFFF07A12, false);
+        g.drawString(font, tr("broadcast.interceptors.chat"), x + 8, y + 3, 0xFFF07A12, false);
         int lines = (bottom - 4 - (y + 14)) / 10;
         long tick = time / 60;
         int ly = y + 14;
         for (int i = lines - 1; i >= 0; i--) {
             long n = tick - i;
             String who = CHATTERS[(int) Math.floorMod(n * 7, CHATTERS.length)];
-            String[] pool = t != null && n % 3 != 0 ? TORNADO_CHAT : CALM_CHAT;
-            String what = String.format(pool[(int) Math.floorMod(n * 13, pool.length)], t == null ? "" : t.efLabel());
+            boolean excited = t != null && n % 3 != 0;
+            int pool = excited ? TORNADO_CHAT : CALM_CHAT;
+            String what = tr("broadcast.interceptors.chat." + (excited ? "tornado." : "calm.") + Math.floorMod(n * 13, pool), t == null ? "" : t.efLabel());
             g.enableScissor(x + 6, ly, x + col - 6, ly + 10);
             g.drawString(font, who + ":", x + 8, ly, 0xFF30C0FF, false);
             g.drawString(font, what, x + 8 + font.width(who + ": "), ly, 0xFFE0E0E0, false);
@@ -209,30 +210,30 @@ public final class BroadcastHud {
 
         // Sponsor logo.
         g.fill(6, y + 4, 52, y + 20, ORANGE);
-        g.drawString(font, "ANCHOR", 10, y + 5, BLACK, false);
-        g.drawString(font, "SPIKE CO", 10, y + 12, BLACK, false);
+        g.drawString(font, tr("broadcast.interceptors.sponsor.1"), 10, y + 5, BLACK, false);
+        g.drawString(font, tr("broadcast.interceptors.sponsor.2"), 10, y + 12, BLACK, false);
 
         // Watch number and countdown to the end of the in-game day.
         long day = level.getDayTime() / 24000;
         long left = 24000 - level.getDayTime() % 24000;
         long secs = left * 36 / 10; // one tick is 3.6 in-game seconds
-        String watchNo = (warning ? "TOR WARNING #" : "TOR WATCH #") + (300 + day);
+        String watchNo = tr(warning ? "broadcast.interceptors.warning_no" : "broadcast.interceptors.watch_no", 300 + day);
         g.drawString(font, watchNo, 60, y + 4, 0xFFFF3030, false);
-        g.drawString(font, String.format("EXPIRES %02d:%02d:%02d", secs / 3600, secs / 60 % 60, secs % 60), 60, y + 13, WHITE, false);
+        g.drawString(font, tr("broadcast.interceptors.expires", String.format("%02d:%02d:%02d", secs / 3600, secs / 60 % 60, secs % 60)), 60, y + 13, WHITE, false);
 
         // Chevron logo with the date and time above it.
         int mid = w / 2;
         long dayTime = level.getDayTime() % 24000;
         int hours = (int) ((dayTime / 1000 + 6) % 24), minutes = (int) (dayTime % 1000 * 60 / 1000);
         String date = Storms.date(level);
-        String when = (date == null ? "DAY " + (day + 1) : date) + String.format("  %d:%02d", hours, minutes);
+        String when = (date == null ? tr("broadcast.interceptors.day", day + 1) : date) + String.format("  %d:%02d", hours, minutes);
         g.drawString(font, when, mid - font.width(when) / 2, y + 3, WHITE, false);
         Draw.line(g, mid - 9, y + 13, mid, y + 19, 2, WHITE);
         Draw.line(g, mid, y + 19, mid + 9, y + 13, 2, WHITE);
         Draw.line(g, mid - 9, y + 17, mid, y + 23, 1, 0xFFF07A12);
         Draw.line(g, mid, y + 23, mid + 9, y + 17, 1, 0xFFF07A12);
 
-        String thanks = "THANK YOU FOR SUPPORTING THE CHASE!";
+        String thanks = tr("broadcast.interceptors.thanks");
         g.drawString(font, thanks, w - font.width(thanks) - 8, y + 8, WHITE, false);
 
         // Scrolling ticker along the very bottom.
@@ -246,16 +247,16 @@ public final class BroadcastHud {
 
     private static String ticker(Level level, Vec3 here, Storms.StormInfo t, List<Storms.StormInfo> storms, int hour) {
         double wind = Storms.windAt(level, here.add(0, 1.6, 0)).horizontalDistance();
-        StringBuilder s = new StringBuilder(String.format("TIMELINE %d:00-%d:00: ", hour, (hour + 4) % 24));
-        s.append(storms.isEmpty() ? "QUIET SKIES, WAITING ON INITIATION" : storms.size() + " ONGOING STORMS");
+        StringBuilder s = new StringBuilder(tr("broadcast.interceptors.ticker.timeline", hour, (hour + 4) % 24));
+        s.append(storms.isEmpty() ? tr("broadcast.interceptors.ticker.quiet") : tr("broadcast.interceptors.ticker.storms", storms.size()));
         if (t != null) {
-            s.append(String.format("  ///  NEAREST TORNADO %s %d MPH, %s %s, MOVING %s AT %d MPH", t.efLabel(), t.windspeed(),
+            s.append("  ///  ").append(tr("broadcast.interceptors.ticker.tornado", t.efLabel(), t.windspeed(),
                     t.distance() >= 1000 ? String.format("%.1f KM", t.distance() / 1000) : (int) t.distance() + " M",
-                    Storms.compassName(t.bearing()), Double.isNaN(t.heading()) ? "--" : Storms.compassName(t.heading()), (int) t.speed()));
+                    Storms.compassLabel(t.bearing()), Double.isNaN(t.heading()) ? "--" : Storms.compassLabel(t.heading()), (int) t.speed()));
         }
         int ef = WindPhysics.efRating(wind);
-        s.append(String.format("  ///  WIND AT THE CHASE VEHICLE %d MPH%s", Math.round(wind), ef < 0 ? "" : " (EF" + ef + ")"));
-        s.append("  ///  ").append(biome(level, here).toUpperCase());
+        s.append("  ///  ").append(tr("broadcast.interceptors.ticker.wind", Math.round(wind), ef < 0 ? "" : " (EF" + ef + ")"));
+        s.append("  ///  ").append(upper(biome(level, here)));
         return s.toString();
     }
 
@@ -266,5 +267,13 @@ public final class BroadcastHud {
         g.pose().scale(scale, scale, 1);
         g.drawString(font, text, 0, 0, WHITE, true);
         g.pose().popPose();
+    }
+
+    private static String tr(String key, Object... args) {
+        return net.minecraft.client.resources.language.I18n.get(key, args);
+    }
+
+    private static String upper(String s) {
+        return s.toUpperCase(java.util.Locale.ROOT);
     }
 }

@@ -50,7 +50,7 @@ public class VehicleApp implements App {
         g.drawString(font, t == null ? name : t.format(name), tx, line, t == null ? 0xFFFFFF : t.text, true);
         line += 13;
         double heading = ((v.getYRot() + 180) % 360 + 360) % 360;
-        g.drawString(font, Component.translatable("app.interceptors.vehicle.heading", Storms.compassName(heading), (int) heading), tx, line, 0xC0C8D0, false);
+        g.drawString(font, Component.translatable("app.interceptors.vehicle.heading", Storms.compassLabel(heading), (int) heading), tx, line, 0xC0C8D0, false);
         line += 12;
         float hp = v.healthFraction();
         g.drawString(font, Component.translatable("app.interceptors.vehicle.armor", (int) (hp * 100)), tx, line, 0xC0C8D0, false);
@@ -70,7 +70,7 @@ public class VehicleApp implements App {
         }
         g.drawString(font, Component.translatable("app.interceptors.vehicle.parts", parts.toString()), tx, line, 0xA0A8B0, false);
         line += 12;
-        g.drawString(font, Component.translatable("app.interceptors.vehicle.anchors", Component.translatable(v.anchorStatus().key()), v.spec().anchorKind()),
+        g.drawString(font, Component.translatable("app.interceptors.vehicle.anchors", Component.translatable(v.anchorStatus().key()), Component.translatable("anchor_kind.interceptors." + v.spec().anchorKind().replace(" ", "_"))),
                 tx, line, v.anchorStatus().color(), false);
         line += 12;
         if (wind > v.spec().ratedWind()) {

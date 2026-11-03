@@ -52,26 +52,28 @@ public final class DropAnchorHud {
         int color;
         String detail = null;
         switch (status) {
-            case READY -> { word = "READY"; color = GREEN; }
-            case DEPLOYING -> { word = "DEPLOYING"; color = YELLOW; }
-            case ANCHORED -> { word = "ANCHORED"; color = GREEN; }
-            case RETRACTING -> { word = "RETRACTING"; color = YELLOW; }
-            case REBOOTING -> { word = "REBOOTING"; color = CYAN; }
+            case READY -> { word = stroke("anchor.interceptors.ready"); color = GREEN; }
+            case DEPLOYING -> { word = stroke("anchor.interceptors.deploying"); color = YELLOW; }
+            case ANCHORED -> { word = stroke("anchor.interceptors.anchored"); color = GREEN; }
+            case RETRACTING -> { word = stroke("anchor.interceptors.retracting"); color = YELLOW; }
+            case REBOOTING -> { word = stroke("anchor.interceptors.rebooting"); color = CYAN; }
             case FAILED -> {
-                word = "ERROR";
+                word = stroke("anchor.interceptors.failed");
                 color = RED;
                 detail = v.failed(Part.HYDRAULICS) ? "hud.interceptors.error.hydraulics" : "hud.interceptors.error.mud";
             }
             case FROZEN -> {
-                word = "ERROR";
+                word = stroke("anchor.interceptors.failed");
                 color = RED;
                 detail = v.failed(Part.COMPUTER) ? "hud.interceptors.error.computer_dead" : "hud.interceptors.error.frozen";
             }
-            default -> { word = "STANDBY"; color = YELLOW; }
+            default -> { word = stroke("anchor.interceptors.standby"); color = YELLOW; }
         }
         boolean error = color == RED;
-        StrokeFont.drawCentered(g, "DROP ANCHOR", x + W / 2f, y + 5, 1.6f, 1, error ? RED : WHITE);
-        StrokeFont.drawCentered(g, word, x + W / 2f, y + 18, 3.2f, 3, color);
+        String title = stroke("hud.interceptors.drop_anchor");
+        StrokeFont.drawCentered(g, title, x + W / 2f, y + 5, Math.min(1.6f, (W - 8) / StrokeFont.width(title, 1)), 1, error ? RED : WHITE);
+        // Longer words in other languages shrink to fit the panel.
+        StrokeFont.drawCentered(g, word, x + W / 2f, y + 18, Math.min(3.2f, (W - 8) / StrokeFont.width(word, 1)), 3, color);
 
         Profile p = PROFILES.computeIfAbsent(v.spec().id(), DropAnchorHud::profile);
         float ground = y + H - 32;
@@ -158,5 +160,11 @@ public final class DropAnchorHud {
         int i = 0;
         for (float z : anchors) a[i++] = z;
         return new Profile(outlines, wheels, a, minZ, maxZ, Math.max(maxY, 1), bottom);
+    }
+
+    /** The stroke font only has plain capitals, so accents are dropped (SPOUŠTÍM becomes SPOUSTIM). */
+    private static String stroke(String key) {
+        String text = net.minecraft.client.resources.language.I18n.get(key);
+        return java.text.Normalizer.normalize(text, java.text.Normalizer.Form.NFD).replaceAll("\\p{M}", "").toUpperCase(java.util.Locale.ROOT);
     }
 }

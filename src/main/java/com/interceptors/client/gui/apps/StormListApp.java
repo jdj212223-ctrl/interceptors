@@ -53,8 +53,8 @@ public class StormListApp implements App {
             g.drawString(font, s.tornado() ? Component.translatable("app.interceptors.storms.tornado").getString() : InterceptApp.pretty(s.type()), cols[0], ry, color, false);
             g.drawString(font, s.tornado() ? s.efLabel() + " " + s.windspeed() + " mph" : Component.translatable("app.interceptors.storms.stage", s.stage()).getString(), cols[1], ry, color, false);
             g.drawString(font, InterceptApp.distance(s.distance()), cols[2], ry, 0xD0D8E0, false);
-            g.drawString(font, Storms.compassName(s.bearing()), cols[3], ry, 0xD0D8E0, false);
-            g.drawString(font, Double.isNaN(s.heading()) ? "--" : Storms.compassName(s.heading()) + " " + (int) s.speed(), cols[4], ry, 0xA0A8B0, false);
+            g.drawString(font, Storms.compassLabel(s.bearing()), cols[3], ry, 0xD0D8E0, false);
+            g.drawString(font, Double.isNaN(s.heading()) ? "--" : Storms.compassLabel(s.heading()) + " " + (int) s.speed(), cols[4], ry, 0xA0A8B0, false);
         }
     }
 
